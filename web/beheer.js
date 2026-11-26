@@ -212,7 +212,8 @@ UIT.bind.bank = async () => {
   // CODA: het bestand wordt in de browser gelezen en nagerekend (coda.mjs), daarna per afschrift doorgestuurd.
   document.getElementById('coda').onchange = async (ev) => {
     const uit = document.getElementById('codauit'), regels = [];
-    for (const bestand of ev.target.files) {
+    const bestanden = [...ev.target.files]; ev.target.value = '';   // zo kan je hetzelfde bestand daarna opnieuw kiezen
+    for (const bestand of bestanden) {
       try {
         const tekst = new TextDecoder('latin1').decode(await bestand.arrayBuffer());
         for (const a of leesCoda(tekst)) {

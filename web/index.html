@@ -60,16 +60,17 @@ summary{cursor:pointer}
 </header>
 <main id="app"><p class="leeg">Laden…</p></main>
 <script>
-// De app bestaat uit meerdere bestanden. UIT is het aanhaakpunt waarmee beheer.js en meer.js
-// tabbladen en pagina's toevoegen aan app.js; coda.mjs leest CODA-bestanden van de bank.
+// De app bestaat uit meerdere bestanden. UIT is het aanhaakpunt waarmee beheer.js, meer.js en
+// peppol.js tabbladen en pagina's toevoegen aan app.js; coda.mjs leest CODA-bestanden van de bank.
 window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 </script>
 <script type="module">
-import { leesCoda, alsBedrag } from './coda.mjs';
-window.leesCoda = leesCoda; window.codaBedrag = alsBedrag;
+import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
+window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
 <script src="beheer.js"></script>
 <script src="meer.js"></script>
+<script src="peppol.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
