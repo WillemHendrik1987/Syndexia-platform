@@ -44,39 +44,59 @@ function schermPortaal(p, metTerug = false) {
 // Wie ook lid is van een kantoor, bekijkt zijn eigen eigendom via #/portaal.
 UIT.routes.portaal = async () => schermPortaal(await q(sb.rpc('portaal')), true);
 
-// ---- pagina: contacten ------------------------------------------------------------
-UIT.vandaag.push('<p style="margin:-8px 0 16px"><a class="knop licht" href="#/contacten">Contacten</a></p>');
+// ---- contacten: tabblad per VME (en #/contacten voor het hele kantoor) ----------------
 const portaalNaam = (c) => c.bedrijfsnaam || [c.voornaam, c.achternaam].filter(Boolean).join(' ');
-UIT.routes.contacten = async () => {
-  const [lijst, kavels] = await Promise.all([
-    q(sb.from('contact').select('id, soort, voornaam, achternaam, bedrijfsnaam, taal, emails, telefoon, gsm, adres_straat, postcode, gemeente').order('achternaam').order('bedrijfsnaam')),
-    q(sb.from('v_kavel_eigenaar_vandaag').select('contact_id, kavelnummer, vme_id')),
-  ]);
-  const vmeNaam = Object.fromEntries((await q(sb.from('vme').select('id, naam'))).map((v) => [v.id, v.naam]));
-  const waar = (c) => kavels.filter((k) => k.contact_id === c.id).map((k) => `${vmeNaam[k.vme_id] ?? ''} ${k.kavelnummer}`).join(', ');
-  const open = S.contactOpen;
-  toon(`${terug}<div class="kaart"><h2>Contacten</h2>
-    <p class="klein">Het e-mailadres bepaalt waar mailings naartoe gaan en wie zich als eigenaar in het portaal kan aanmelden. Meerdere adressen scheid je met een komma.</p>
-    ${lijst.length ? lijst.map((c) => `<details class="contact" data-id="${c.id}"${open === c.id ? ' open' : ''} style="border-top:1px solid var(--l);padding:8px 0">
-      <summary style="cursor:pointer"><b>${esc(portaalNaam(c))}</b> <span class="klein">${esc(waar(c) || 'geen kavel vandaag')} · ${esc((c.emails ?? []).join(', ') || 'geen e-mailadres')}</span></summary>
-      <form class="fc" data-id="${c.id}" data-soort="${c.soort}" style="margin-top:8px">
-        <div class="rij">${c.soort === 'vennootschap' ? veld('Bedrijfsnaam', inp('bedrijfsnaam', `required value="${esc(c.bedrijfsnaam ?? '')}"`), '2 1 240px')
-          : veld('Voornaam', inp('voornaam', `value="${esc(c.voornaam ?? '')}"`)) + veld('Achternaam', inp('achternaam', `required value="${esc(c.achternaam ?? '')}"`))}
-          ${veld('Taal', kies('taal', ['nl', 'fr', 'en', 'de'].map((t) => `<option${t === (c.taal ?? 'nl') ? ' selected' : ''}>${t}</option>`).join('')), '0 1 90px')}</div>
-        <div class="rij">${veld('E-mailadres(sen)', inp('emails', `value="${esc((c.emails ?? []).join(', '))}"`), '2 1 260px')}${veld('Telefoon', inp('telefoon', `value="${esc(c.telefoon ?? '')}"`))}${veld('Gsm', inp('gsm', `value="${esc(c.gsm ?? '')}"`))}</div>
-        <div class="rij">${veld('Straat en nummer', inp('adres_straat', `value="${esc(c.adres_straat ?? '')}"`), '2 1 240px')}${veld('Postcode', inp('postcode', `value="${esc(c.postcode ?? '')}"`), '0 1 110px')}${veld('Gemeente', inp('gemeente', `value="${esc(c.gemeente ?? '')}"`))}</div>
-        <p><button>Opslaan</button></p></form></details>`).join('') : '<p class="leeg">Nog geen contacten. Je maakt ze aan bij Beheer, wanneer je een eigenaar aan een kavel koppelt.</p>'}</div>`);
-  document.querySelectorAll('form.fc').forEach((f) => { f.onsubmit = async (ev) => {
+const CONTACT_VELDEN = 'id, soort, voornaam, achternaam, bedrijfsnaam, taal, emails, telefoon, gsm, adres_straat, postcode, gemeente';
+const contactenHtml = (lijst, waar) => `<p class="klein">Het e-mailadres bepaalt waar mailings naartoe gaan en wie zich als eigenaar in het portaal kan aanmelden. Meerdere adressen scheid je met een komma.</p>
+  ${lijst.length ? lijst.map((c) => `<details class="contact" data-id="${c.id}"${S.contactOpen === c.id ? ' open' : ''} style="border-top:1px solid var(--l);padding:8px 0">
+    <summary style="cursor:pointer"><b>${esc(portaalNaam(c))}</b> <span class="klein">${esc(waar(c) || 'geen kavel')} · ${esc((c.emails ?? []).join(', ') || 'geen e-mailadres')}${c.gsm || c.telefoon ? ` · ${esc(c.gsm || c.telefoon)}` : ''}</span></summary>
+    <form class="fc" data-id="${c.id}" data-soort="${c.soort}" style="margin-top:8px">
+      <div class="rij">${c.soort === 'vennootschap' ? veld('Bedrijfsnaam', inp('bedrijfsnaam', `required value="${esc(c.bedrijfsnaam ?? '')}"`), '2 1 240px')
+        : veld('Voornaam', inp('voornaam', `value="${esc(c.voornaam ?? '')}"`)) + veld('Achternaam', inp('achternaam', `required value="${esc(c.achternaam ?? '')}"`))}
+        ${veld('Taal', kies('taal', ['nl', 'fr', 'en', 'de'].map((t) => `<option${t === (c.taal ?? 'nl') ? ' selected' : ''}>${t}</option>`).join('')), '0 1 90px')}</div>
+      <div class="rij">${veld('E-mailadres(sen)', inp('emails', `value="${esc((c.emails ?? []).join(', '))}"`), '2 1 260px')}${veld('Telefoon', inp('telefoon', `value="${esc(c.telefoon ?? '')}"`))}${veld('Gsm', inp('gsm', `value="${esc(c.gsm ?? '')}"`))}</div>
+      <div class="rij">${veld('Straat en nummer', inp('adres_straat', `value="${esc(c.adres_straat ?? '')}"`), '2 1 240px')}${veld('Postcode', inp('postcode', `value="${esc(c.postcode ?? '')}"`), '0 1 110px')}${veld('Gemeente', inp('gemeente', `value="${esc(c.gemeente ?? '')}"`))}</div>
+      <p><button>Opslaan</button></p></form></details>`).join('') : '<p class="leeg">Nog geen contacten. Je maakt ze aan bij Beheer, wanneer je een eigenaar aan een kavel koppelt.</p>'}`;
+function bindContacten(wortel, opnieuw) {
+  const ok = (a) => /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(a);
+  wortel.querySelectorAll('form.fc').forEach((f) => { f.onsubmit = async (ev) => {
     ev.preventDefault();
     const adressen = f.emails.value.split(/[,;\s]+/).map((a) => a.trim()).filter(Boolean);
     S.contactOpen = f.dataset.id;
-    if (adressen.some((a) => !/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(a))) { fout({ message: `Geen geldig e-mailadres: ${adressen.find((a) => !/^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]+$/.test(a))}` }); return UIT.routes.contacten(); }
+    if (!adressen.every(ok)) { fout({ message: `Geen geldig e-mailadres: ${adressen.find((a) => !ok(a))}` }); return opnieuw(); }
     const naam = f.dataset.soort === 'vennootschap' ? { bedrijfsnaam: f.bedrijfsnaam.value.trim() } : { voornaam: ofNull(f.voornaam.value), achternaam: f.achternaam.value.trim() };
     try {
       await q(sb.from('contact').update({ ...naam, taal: f.taal.value, emails: adressen, telefoon: ofNull(f.telefoon.value), gsm: ofNull(f.gsm.value),
         adres_straat: ofNull(f.adres_straat.value), postcode: ofNull(f.postcode.value), gemeente: ofNull(f.gemeente.value) }).eq('id', f.dataset.id));
       S.bericht = { soort: 'ok', tekst: 'Contact opgeslagen.' }; S.contactOpen = null;
     } catch (e) { fout(e); }
-    UIT.routes.contacten();
+    opnieuw();
   }; });
+}
+// Tabblad binnen een VME: iedereen die aan een kavel van deze VME hangt (eigenaar, huurder…).
+UIT.tabs.push(['contacten', 'Contacten']);
+UIT.fn.contacten = () => '<div id="tabinhoud"><p class="leeg">Laden…</p></div>';
+UIT.bind.contacten = async () => {
+  const v = S.vme, doel = document.getElementById('tabinhoud');
+  let relaties, lijst = [];
+  try {
+    relaties = await q(sb.from('kavel_relatie').select('contact_id, kavel_id, rol, eind_datum').eq('vme_id', v.id));
+    const ids = [...new Set(relaties.map((r) => r.contact_id))];
+    if (ids.length) lijst = await q(sb.from('contact').select(CONTACT_VELDEN).in('id', ids).order('achternaam').order('bedrijfsnaam'));
+  } catch (e) { doel.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; return; }
+  if (!document.body.contains(doel)) return;
+  const kavel = Object.fromEntries(S.d.kavels.map((k) => [k.id, k.kavelnummer])), vandaag = new Date().toISOString().slice(0, 10);
+  const waar = (c) => relaties.filter((r) => r.contact_id === c.id).map((r) => `${r.eind_datum && r.eind_datum < vandaag ? 'vroegere ' : ''}${r.rol} ${kavel[r.kavel_id] ?? ''}`).join(', ');
+  doel.innerHTML = `<div class="kaart"><h3 style="margin-top:0">Contacten van ${esc(v.naam)}</h3>${contactenHtml(lijst, waar)}</div>`;
+  bindContacten(doel, () => schermVme());
+};
+// Alle contacten van het kantoor, over de VME's heen (geen knop meer op het startscherm).
+UIT.routes.contacten = async () => {
+  const [lijst, kavels, vmes] = await Promise.all([
+    q(sb.from('contact').select(CONTACT_VELDEN).order('achternaam').order('bedrijfsnaam')),
+    q(sb.from('v_kavel_eigenaar_vandaag').select('contact_id, kavelnummer, vme_id')), q(sb.from('vme').select('id, naam')),
+  ]);
+  const vmeNaam = Object.fromEntries(vmes.map((x) => [x.id, x.naam]));
+  toon(`${terug}<div class="kaart"><h2>Contacten</h2>${contactenHtml(lijst, (c) => kavels.filter((k) => k.contact_id === c.id).map((k) => `${vmeNaam[k.vme_id] ?? ''} ${k.kavelnummer}`).join(', '))}</div>`);
+  bindContacten(document, () => UIT.routes.contacten());
 };
