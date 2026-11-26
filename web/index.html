@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Syndexia Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js" integrity="sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ" crossorigin="anonymous"></script>
+<style>
+:root{--b:#8B1A4A;--bd:#6d1439;--bl:#f7eef2;--t:#1f1a1c;--g:#6b6166;--l:#e7dfe2;--bg:#faf8f9;--ok:#1d7a4f;--fout:#b3261e;--warn:#9a6700}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 Inter,system-ui,sans-serif;color:var(--t);background:var(--bg)}
+h1,h2,h3{font-family:"Playfair Display",Georgia,serif;font-weight:600;margin:0}
+h1{font-size:22px}h2{font-size:20px}h3{font-size:16px;margin:22px 0 8px}
+header{background:var(--b);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between}
+header a{color:#fff;text-decoration:none}
+header small{opacity:.85}
+main{max-width:1000px;margin:0 auto;padding:16px}
+.kaart{background:#fff;border:1px solid var(--l);border-radius:10px;padding:16px;margin:0 0 14px}
+a.kaart{display:block;color:inherit;text-decoration:none}
+a.kaart:hover{border-color:var(--b)}
+.rij{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.rij>*{flex:1 1 150px}
+.cijfers{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.cijfers div{min-width:110px}
+.cijfers b{display:block;font-size:18px}
+.cijfers span,.klein{color:var(--g);font-size:13px}
+label{display:block;font-size:13px;color:var(--g);margin-bottom:3px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit;background:#fff}
+button{padding:9px 14px;border:0;border-radius:8px;background:var(--b);color:#fff;font:inherit;font-weight:500;cursor:pointer}
+button:hover{background:var(--bd)}
+button.stil{background:none;color:var(--b);padding:6px 8px}
+button:disabled{opacity:.5}
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--l);margin:14px 0}
+.tabs button{background:none;color:var(--g);border-radius:8px 8px 0 0;white-space:nowrap}
+.tabs button.aan{color:var(--b);box-shadow:inset 0 -3px var(--b);font-weight:600}
+.schuif{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--l);text-align:left;white-space:nowrap}
+th{font-size:12px;color:var(--g);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tr.tot td{font-weight:600;border-top:2px solid var(--t)}
+.pil{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;background:var(--bl);color:var(--b)}
+.pil.ok{background:#e6f4ec;color:var(--ok)}.pil.fout{background:#fbeae8;color:var(--fout)}.pil.warn{background:#fff4d6;color:var(--warn)}
+.melding{padding:10px 12px;border-radius:8px;margin:10px 0;background:var(--bl)}
+.melding.fout{background:#fbeae8;color:var(--fout)}.melding.ok{background:#e6f4ec;color:var(--ok)}
+.leeg{color:var(--g);padding:14px 0}
+.knop{display:inline-block;padding:9px 14px;border-radius:8px;background:var(--b);color:#fff;text-decoration:none;font-weight:500}
+.knop.licht{background:var(--bl);color:var(--b)}
+input.smal{width:90px;text-align:right;padding:6px 8px}
+summary{cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <a href="#/"><h1>Syndexia Platform</h1><small>testversie</small></a>
+  <span id="wie"></span>
+</header>
+<main id="app"><p class="leeg">Laden…</p></main>
+<script>
+// De app bestaat uit drie bestanden. UIT is het aanhaakpunt waarmee beheer.js
+// tabbladen en pagina's toevoegt aan app.js; coda.mjs leest CODA-bestanden van de bank.
+window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
+</script>
+<script type="module">
+import { leesCoda, alsBedrag } from './coda.mjs';
+window.leesCoda = leesCoda; window.codaBedrag = alsBedrag;
+</script>
+<script src="beheer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
