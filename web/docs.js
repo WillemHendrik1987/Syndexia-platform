@@ -17,7 +17,7 @@ UIT.fn.doc = () => '<div id="tabinhoud"><p class="leeg">Laden…</p></div>';
 UIT.bind.doc = async () => {
   const v = S.vme, doel = document.getElementById('tabinhoud');
   let lijst;
-  try { lijst = await q(sb.from('document').select('id, map, naam, pad, grootte, aangemaakt_op').eq('vme_id', v.id).order('map').order('naam')); }
+  try { lijst = await q(sb.from('document').select('id, map, naam, pad, grootte, aangemaakt_op, voor_eigenaars').eq('vme_id', v.id).order('map').order('naam')); }
   catch (e) { doel.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; return; }
   if (!document.body.contains(doel)) return;
   const mappen = [...new Set([...DOC_MAPPEN, ...lijst.map((d) => d.map)])];
@@ -26,7 +26,8 @@ UIT.bind.doc = async () => {
       <form id="fd"><div class="rij">${veld('Map', kies('map', mappen.map((m) => `<option>${esc(m)}</option>`).join('')))}${veld('Bestanden (elk hoogstens 25 MB)', '<input type="file" name="bestanden" multiple required>', '2 1 260px')}</div>
       <p><button>Opladen</button></p></form><div id="docuit"></div></div>
     ${mappen.filter((m) => lijst.some((d) => d.map === m)).map((m) => `<div class="kaart"><h3 style="margin-top:0">${esc(m)}</h3>
-      ${tabel(['Naam', '#Grootte', 'Opgeladen', ''], lijst.filter((d) => d.map === m).map((d) => `<tr>${cel(d.naam)}<td class="n">${grootte(d.grootte)}</td>${cel(dat(d.aangemaakt_op))}
+      ${tabel(['Naam', '#Grootte', 'Opgeladen', 'Portaal', ''], lijst.filter((d) => d.map === m).map((d) => `<tr>${cel(d.naam)}<td class="n">${grootte(d.grootte)}</td>${cel(dat(d.aangemaakt_op))}
+        <td><label style="display:inline;white-space:nowrap" title="Zichtbaar voor de eigenaars in het portaal"><input type="checkbox" data-vrij="${d.id}" style="width:auto"${d.voor_eigenaars ? ' checked' : ''}> eigenaars</label></td>
         <td><button class="stil" data-open="${d.id}">Openen</button> <button class="stil" data-wis="${d.id}">Wissen</button></td></tr>`))}</div>`).join('') || '<div class="kaart"><p class="leeg">Nog geen documenten voor deze VME.</p></div>'}`;
 
   bijVerzenden('fd', async (f) => {
@@ -56,6 +57,15 @@ UIT.bind.doc = async () => {
       const { data, error } = await opslag().createSignedUrl(doc.pad, 120);
       if (error) { if (venster) venster.close(); fout(error); return schermVme(); }
       if (venster) venster.location = data.signedUrl; else location.href = data.signedUrl;
+    };
+  });
+  // Vinkje "eigenaars": het document verschijnt in het portaal van wie vandaag eigenaar is in deze VME.
+  doel.querySelectorAll('[data-vrij]').forEach((vink) => {
+    vink.onchange = async () => {
+      const doc = lijst.find((d) => d.id === vink.dataset.vrij);
+      try { await q(sb.from('document').update({ voor_eigenaars: vink.checked }).eq('id', doc.id)); S.bericht = { soort: 'ok', tekst: `${doc.naam} is ${vink.checked ? 'nu zichtbaar voor de eigenaars' : 'niet meer zichtbaar voor de eigenaars'}.` }; }
+      catch (e) { fout(e); }
+      schermVme();
     };
   });
   doel.querySelectorAll('[data-wis]').forEach((knop) => {

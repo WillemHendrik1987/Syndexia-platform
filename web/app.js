@@ -46,6 +46,7 @@ function schermLogin(modus = 'in') {
   if (modus === 'vergeten') return schermVergeten();
   toon(`<div class="kaart" style="max-width:420px;margin:30px auto">
     <h2>${modus === 'in' ? 'Aanmelden' : 'Account maken'}</h2>
+    ${modus === 'nieuw' ? '<p class="klein">Eigenaar? Gebruik het e-mailadres dat uw syndicus van u kent. U ziet dan alleen de gegevens van uw eigen kavel.</p>' : ''}
     <p class="klein">${modus === 'in' ? 'Meld je aan met je e-mailadres en wachtwoord.' : 'Kies zelf een wachtwoord (minstens 8 tekens). Je krijgt een mail om je adres te bevestigen.'}</p>
     <form id="f"><p><label>E-mailadres</label><input name="email" type="email" required autocomplete="email"></p>
     <p><label>Wachtwoord</label><span style="display:flex;gap:6px"><input name="ww" type="password" required minlength="8" autocomplete="${modus === 'in' ? 'current-password' : 'new-password'}"><button type="button" class="stil" data-oog title="Wachtwoord tonen of verbergen" aria-label="Wachtwoord tonen of verbergen">👁</button></span></p>
@@ -110,7 +111,15 @@ async function start() {
   } catch (e) { fout(e); }
   // Een herstel-link meldt zich soms terwijl deze functie al bezig was: dan gaat het wachtwoordscherm voor.
   if (S.herstel) { if (!document.querySelector('[name=ww2]')) schermNieuwWachtwoord(); return; }
-  if (!S.kantoor) return toon(`<div class="kaart"><h2>Nog geen toegang</h2><p>Je bent aangemeld als <b>${esc(session.user.email)}</b>, maar dit adres is nog niet aan een kantoor gekoppeld. Vraag de beheerder om je uit te nodigen en meld je daarna opnieuw aan.</p></div>`);
+  if (!S.kantoor) {
+    // Geen lid van een kantoor: misschien een eigenaar. Het portaal geeft alleen terug wat bij dit adres hoort.
+    let p = null;
+    try { p = await q(sb.rpc('portaal')); } catch (e) { fout(e); }
+    if (p?.kavels?.length) return schermPortaal(p);
+    return toon(`<div class="kaart"><h2>Nog geen toegang</h2><p>U bent aangemeld als <b>${esc(session.user.email)}</b>, maar dit adres is nog niet gekend.</p>
+      <p><b>Eigenaar?</b> Uw syndicus moet dit e-mailadres bij uw gegevens zetten. Vraag het na en meld u daarna opnieuw aan.</p>
+      <p><b>Medewerker van een kantoor?</b> Vraag de beheerder om u uit te nodigen.</p></div>`);
+  }
   route();
 }
 

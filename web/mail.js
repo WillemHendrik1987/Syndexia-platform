@@ -17,6 +17,8 @@ const MAIL_SOORT = {
     tekst: 'Beste {naam},\n\nVoor {kavel} in {vme} wordt de volgende provisie opgevraagd: {omschrijving}.\n\nBedrag: {bedrag} euro\nTe betalen tegen: {vervaldatum}\nRekening: {iban}\nGestructureerde mededeling: {mededeling}' + MAIL_VOET },
   vergadering: { naam: 'Uitnodiging algemene vergadering', onderwerp: 'Uitnodiging algemene vergadering {vme} - {datum}',
     tekst: 'Beste {naam},\n\nU wordt uitgenodigd op de {soort} algemene vergadering van {vme}.\n\nDatum: {datum}\nUur: {uur}\nPlaats: {plaats}\n\nAgenda:\n{agenda}' + MAIL_VOET },
+  portaal: { naam: 'Uitnodiging eigenaarsportaal', db: 'vrij', onderwerp: 'Uw toegang tot het eigenaarsportaal van {vme}',
+    tekst: 'Beste {naam},\n\nVoor {vme} kan u voortaan online uw gegevens raadplegen: wat nog te betalen is, uw deel in de afgesloten boekjaren, de geplande vergaderingen en de documenten van het gebouw.\n\nZo meldt u zich aan:\n1. Ga naar {portaal}\n2. Kies "Nog geen account?" en gebruik het e-mailadres waarop u dit bericht ontving.\n3. Bevestig uw adres via de mail die u daarna krijgt.' + MAIL_VOET },
   vrij: { naam: 'Vrij bericht aan alle eigenaars', onderwerp: '', tekst: 'Beste {naam},\n\n' + MAIL_VOET },
 };
 const mailVul = (sjabloon, velden) => sjabloon.replace(/\{([a-z_]+)\}/g, (heel, k) => (velden[k] == null || velden[k] === '' ? heel : velden[k]));
@@ -50,7 +52,7 @@ UIT.bind.mail = async () => {
 
   const adresVan = Object.fromEntries(contacten.map((c) => [c.id, (c.emails ?? []).filter((a) => MAIL_ADRES.test(a))]));
   const rek = banken.find((b) => b.soort === 'werkkapitaal') ?? banken[0];
-  const vast = { vme: v.naam, kantoor: S.kantoor.naam, afzender: (info.van ?? '').replace(/^.*<|>.*$/g, ''), iban: rek ? rek.iban.replace(/(.{4})/g, '$1 ').trim() : null };
+  const vast = { portaal: location.origin, vme: v.naam, kantoor: S.kantoor.naam, afzender: (info.van ?? '').replace(/^.*<|>.*$/g, ''), iban: rek ? rek.iban.replace(/(.{4})/g, '$1 ').trim() : null };
   // Wie krijgt de mail van een kavel? De lasthebber als er één is aangeduid, anders alle eigenaars.
   const ontvangers = (kavelId) => { const e = eig.filter((x) => x.kavel_id === kavelId), l = e.filter((x) => x.is_lasthebber); return l.length ? l : e; };
   const oproepen = [...new Map(prov.map((p) => [`${p.datum}|${p.omschrijving ?? ''}`, p])).entries()].map(([sleutel, p]) => ({ sleutel, tekst: `${dat(p.datum)} · ${p.omschrijving ?? 'zonder omschrijving'}` }));
@@ -80,14 +82,14 @@ UIT.bind.mail = async () => {
   const optie = (waarde, tekst, gekozen) => `<option value="${esc(waarde)}"${waarde === gekozen ? ' selected' : ''}>${esc(tekst)}</option>`;
   const keuze = st.soort === 'provisie' ? veld('Welke oproep', kies('keuze', oproepen.map((o) => optie(o.sleutel, o.tekst, st.keuze.provisie)).join('')), '2 1 260px')
     : st.soort === 'vergadering' ? veld('Welke vergadering', kies('keuze', avs.map((a) => optie(a.id, `${dat(a.datum)} · ${a.soort}`, st.keuze.vergadering)).join('')), '2 1 260px') : '';
-  const leeg = { herinnering: 'Er zijn geen herinneringen die nog verstuurd moeten worden. Maak ze eerst aan in het tabblad Boekjaar.', provisie: 'Er zijn nog geen provisies opgevraagd.', vergadering: 'Er is geen geplande vergadering.', vrij: 'Deze VME heeft nog geen eigenaars.' }[st.soort];
+  const leeg = { herinnering: 'Er zijn geen herinneringen die nog verstuurd moeten worden. Maak ze eerst aan in het tabblad Boekjaar.', provisie: 'Er zijn nog geen provisies opgevraagd.', vergadering: 'Er is geen geplande vergadering.', vrij: 'Deze VME heeft nog geen eigenaars.' }[st.soort] ?? 'Deze VME heeft nog geen eigenaars.';
   const metAdres = lijst.filter((r) => adresVan[r.contact_id]?.length);
   const logTel = (id, status) => logB.filter((b) => b.mailing_id === id && b.status === status).length;
   const mislukt = logB.filter((b) => b.status === 'mislukt');
 
   doel.innerHTML = `${info.mail_sleutel ? '' : '<div class="melding fout">Versturen is nog niet mogelijk: de Resend-sleutel staat niet in Supabase of de functie verstuur-mail is niet bereikbaar.</div>'}
     <div class="kaart"><h3 style="margin-top:0">Nieuwe mailing</h3>
-      <p class="klein">De mails vertrekken van <b>${esc(vast.afzender || 'onbekend')}</b>. Schrijf één tekst; de velden tussen accolades worden per ontvanger ingevuld. Beschikbaar: {naam} {kavel} {vme} {bedrag} {vervaldatum} {mededeling} {omschrijving} {iban} {datum} {uur} {plaats} {agenda} {kantoor} {afzender}.</p>
+      <p class="klein">De mails vertrekken van <b>${esc(vast.afzender || 'onbekend')}</b>. Schrijf één tekst; de velden tussen accolades worden per ontvanger ingevuld. Beschikbaar: {naam} {kavel} {vme} {bedrag} {vervaldatum} {mededeling} {omschrijving} {iban} {datum} {uur} {plaats} {agenda} {kantoor} {afzender} {portaal}.</p>
       <form id="fm"><div class="rij">${veld('Soort', kies('soort', Object.entries(MAIL_SOORT).map(([k, s]) => optie(k, s.naam, st.soort)).join('')), '1 1 240px')}${keuze}</div>
         ${st.soort === 'vergadering' ? '<p class="klein"><span class="pil warn">let op</span> De wet vraagt een aangetekende zending, tenzij de eigenaar individueel, uitdrukkelijk en schriftelijk instemde met een ander communicatiemiddel. Het platform houdt die instemming nog niet bij: vink alleen aan wie instemde.</p>' : ''}
         ${lijst.length ? `<label>Onderwerp</label><input name="onderwerp" value="${esc(sj.onderwerp)}" maxlength="200">
@@ -134,7 +136,7 @@ UIT.bind.mail = async () => {
     return uit;
   }
   async function roep(body) {
-    const { data, error } = await sb.functions.invoke('verstuur-mail', { body: { vme_id: v.id, soort: st.soort, onderwerp: mailVul(f.onderwerp.value.trim(), vast).replace(/\s*[-–·]?\s*\{[a-z_]+\}/g, '').trim(), ...body } });
+    const { data, error } = await sb.functions.invoke('verstuur-mail', { body: { vme_id: v.id, soort: MAIL_SOORT[st.soort].db ?? st.soort, onderwerp: mailVul(f.onderwerp.value.trim(), vast).replace(/\s*[-–·]?\s*\{[a-z_]+\}/g, '').trim(), ...body } });
     if (error) { let tekst = error.message; try { tekst = (await error.context.json()).fout ?? tekst; } catch (e) { /* geen uitleg van de functie */ } throw new Error(tekst); }
     return data;
   }
