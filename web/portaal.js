@@ -33,7 +33,8 @@ function schermPortaal(p, metTerug = false) {
         ${p.kavels.filter((k) => k.vme_id === v.vme_id).map(kaartKavel).join('')}
         ${avs.length ? `<div class="kaart"><h3 style="margin-top:0">Geplande vergaderingen</h3>${avs.map((g) => `<p><b>${dat(g.datum)}${g.tijdstip ? ` om ${esc(g.tijdstip.slice(0, 5))}` : ''}</b>${g.plaats ? ` · ${esc(g.plaats)}` : ''} · ${esc(g.soort)} algemene vergadering</p>${g.agenda.length ? `<ol>${g.agenda.map((a) => `<li>${esc(a)}</li>`).join('')}</ol>` : ''}`).join('')}</div>` : ''}
         <div class="kaart"><h3 style="margin-top:0">Documenten</h3>${docs.length ? tabel(['Map', 'Naam', 'Datum', ''], docs.map((d) => `<tr>${cel(d.map)}${cel(d.naam)}${cel(dat(d.datum))}<td><button class="stil" data-pdoc="${d.id}">Openen</button></td></tr>`)) : '<p class="leeg">De syndicus heeft nog geen documenten vrijgegeven.</p>'}</div>`;
-    }).join('')}`);
+    }).join('')}${vmes.length && UIT.portaalExtra ? UIT.portaalExtra() : ''}`);
+  if (vmes.length && UIT.portaalBind) UIT.portaalBind(() => schermPortaal(p, metTerug));
   document.querySelectorAll('[data-pdoc]').forEach((knop) => { knop.onclick = async () => {
     const doc = p.documenten.find((d) => d.id === knop.dataset.pdoc), venster = window.open('', '_blank');
     const { data, error } = await sb.storage.from('documenten').createSignedUrl(doc.pad, 120);
