@@ -287,7 +287,7 @@ UIT.bind.jaar = async () => {
     <div class="kaart"><h3 style="margin-top:0">Stand per kavel ${esc(bj?.omschrijving ?? '')}</h3>
       ${tabel(['Kavel', '#Opgevraagd', '#Betaald', '#Open'], openstaand.map((o) => `<tr>${cel(o.kavelnummer)}${celN(o.opgevraagd)}${celN(o.betaald)}${celN(o.openstaand)}</tr>`), openstaand.length ? `<tr class="tot"><td>Totaal</td>${celN(som(openstaand, (o) => o.opgevraagd))}${celN(som(openstaand, (o) => o.betaald))}${celN(som(openstaand, (o) => o.openstaand))}</tr>` : '')}</div>
     <div class="kaart"><h3 style="margin-top:0">Herinneringen</h3>
-      <p class="klein">Maakt een herinnering voor elke kavel met een vervallen, onbetaalde provisie; hoogstens één per 15 dagen en drie in totaal. In deze testversie wordt nog niets verstuurd.</p>
+      <p class="klein">Maakt een herinnering voor elke kavel met een vervallen, onbetaalde provisie; hoogstens één per 15 dagen en drie in totaal. Versturen doe je daarna in het tabblad Mailings.</p>
       <p><button id="herinner">Herinneringen aanmaken</button></p>
       ${tabel(['Kavel', 'Datum', 'Niveau', '#Bedrag', 'Verstuurd'], herinneringen.map((h) => `<tr>${cel(kavelNr[h.kavel_id])}${cel(dat(h.datum))}${cel(h.niveau)}${celN(h.bedrag)}${cel(h.verstuurd_op ? dat(h.verstuurd_op) : 'nog niet')}</tr>`))}</div>`;
 

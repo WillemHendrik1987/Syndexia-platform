@@ -43,14 +43,17 @@ function fout(e) { S.bericht = { soort: 'fout', tekst: e.message || String(e) };
 // ---- aanmelden --------------------------------------------------------------
 function schermLogin(modus = 'in') {
   document.getElementById('wie').innerHTML = '';
+  if (modus === 'vergeten') return schermVergeten();
   toon(`<div class="kaart" style="max-width:420px;margin:30px auto">
     <h2>${modus === 'in' ? 'Aanmelden' : 'Account maken'}</h2>
     <p class="klein">${modus === 'in' ? 'Meld je aan met je e-mailadres en wachtwoord.' : 'Kies zelf een wachtwoord (minstens 8 tekens). Je krijgt een mail om je adres te bevestigen.'}</p>
     <form id="f"><p><label>E-mailadres</label><input name="email" type="email" required autocomplete="email"></p>
-    <p><label>Wachtwoord</label><input name="ww" type="password" required minlength="8" autocomplete="${modus === 'in' ? 'current-password' : 'new-password'}"></p>
+    <p><label>Wachtwoord</label><span style="display:flex;gap:6px"><input name="ww" type="password" required minlength="8" autocomplete="${modus === 'in' ? 'current-password' : 'new-password'}"><button type="button" class="stil" data-oog title="Wachtwoord tonen of verbergen" aria-label="Wachtwoord tonen of verbergen">👁</button></span></p>
     <button>${modus === 'in' ? 'Aanmelden' : 'Account maken'}</button>
-    <button type="button" class="stil" id="wissel">${modus === 'in' ? 'Nog geen account?' : 'Ik heb al een account'}</button></form></div>`);
+    <button type="button" class="stil" id="wissel">${modus === 'in' ? 'Nog geen account?' : 'Ik heb al een account'}</button>
+    ${modus === 'in' ? '<button type="button" class="stil" id="vergeten">Wachtwoord vergeten?</button>' : ''}</form></div>`);
   document.getElementById('wissel').onclick = () => schermLogin(modus === 'in' ? 'nieuw' : 'in');
+  if (modus === 'in') document.getElementById('vergeten').onclick = () => schermLogin('vergeten');
   document.getElementById('f').onsubmit = async (ev) => {
     ev.preventDefault();
     const f = new FormData(ev.target), email = f.get('email').trim(), password = f.get('ww');
@@ -62,6 +65,36 @@ function schermLogin(modus = 'in') {
   };
 }
 
+// Wachtwoord vergeten: Supabase mailt een link. Wie op die link klikt komt aangemeld terug
+// op deze pagina met de melding PASSWORD_RECOVERY, en kiest dan een nieuw wachtwoord.
+function schermVergeten() {
+  toon(`<div class="kaart" style="max-width:420px;margin:30px auto"><h2>Wachtwoord vergeten</h2>
+    <p class="klein">Geef je e-mailadres. Je krijgt een mail met een link om een nieuw wachtwoord te kiezen.</p>
+    <form id="f"><p><label>E-mailadres</label><input name="email" type="email" required autocomplete="email"></p>
+    <button>Stuur de link</button> <button type="button" class="stil" id="wissel">Terug naar aanmelden</button></form></div>`);
+  document.getElementById('wissel').onclick = () => schermLogin('in');
+  document.getElementById('f').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const { error } = await sb.auth.resetPasswordForEmail(new FormData(ev.target).get('email').trim(), { redirectTo: location.origin });
+    if (error) { fout(error); return schermLogin('vergeten'); }
+    S.bericht = { soort: 'ok', tekst: 'Als dit adres een account heeft, is er een mail met een link onderweg.' }; schermLogin('in');
+  };
+}
+function schermNieuwWachtwoord() {
+  toon(`<div class="kaart" style="max-width:420px;margin:30px auto"><h2>Nieuw wachtwoord kiezen</h2>
+    <form id="f"><p><label>Nieuw wachtwoord (minstens 8 tekens)</label><span style="display:flex;gap:6px"><input name="ww" type="password" required minlength="8" autocomplete="new-password"><button type="button" class="stil" data-oog title="Wachtwoord tonen of verbergen" aria-label="Wachtwoord tonen of verbergen">👁</button></span></p>
+    <p><label>Nog een keer</label><span style="display:flex;gap:6px"><input name="ww2" type="password" required minlength="8" autocomplete="new-password"><button type="button" class="stil" data-oog title="Wachtwoord tonen of verbergen" aria-label="Wachtwoord tonen of verbergen">👁</button></span></p>
+    <button>Wachtwoord opslaan</button></form></div>`);
+  document.getElementById('f').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const f = new FormData(ev.target);
+    if (f.get('ww') !== f.get('ww2')) { fout({ message: 'De twee wachtwoorden zijn niet gelijk.' }); return schermNieuwWachtwoord(); }
+    const { error } = await sb.auth.updateUser({ password: f.get('ww') });
+    if (error) { fout(error); return schermNieuwWachtwoord(); }
+    S.herstel = false; S.bericht = { soort: 'ok', tekst: 'Je wachtwoord is gewijzigd.' }; start();
+  };
+}
+
 // Na het aanmelden: uitnodigingen aanvaarden (maakt je lid van je kantoor) en het kantoor ophalen.
 async function start() {
   const { data: { session } } = await sb.auth.getSession();
@@ -69,18 +102,21 @@ async function start() {
   if (!session) return schermLogin();
   document.getElementById('wie').innerHTML = `<small>${esc(session.user.email)}</small> <button class="stil" style="color:#fff" id="uit">Afmelden</button>`;
   document.getElementById('uit').onclick = () => sb.auth.signOut();
+  if (S.herstel) return schermNieuwWachtwoord();
   try {
     await sb.rpc('aanvaard_uitnodigingen');
     const kantoren = await q(sb.from('kantoor').select('id, naam').order('naam'));
     S.kantoor = kantoren[0] ?? null;
   } catch (e) { fout(e); }
+  // Een herstel-link meldt zich soms terwijl deze functie al bezig was: dan gaat het wachtwoordscherm voor.
+  if (S.herstel) { if (!document.querySelector('[name=ww2]')) schermNieuwWachtwoord(); return; }
   if (!S.kantoor) return toon(`<div class="kaart"><h2>Nog geen toegang</h2><p>Je bent aangemeld als <b>${esc(session.user.email)}</b>, maar dit adres is nog niet aan een kantoor gekoppeld. Vraag de beheerder om je uit te nodigen en meld je daarna opnieuw aan.</p></div>`);
   route();
 }
 
 // ---- navigatie: #/ = alle VME's, #/vme/<id>/<tab> = één VME --------------------
 async function route() {
-  if (!S.sessie || !S.kantoor) return;
+  if (!S.sessie || !S.kantoor || S.herstel) return;
   const [, deel, id, tab] = location.hash.split('/');
   try {
     if (UIT.routes[deel]) await UIT.routes[deel](id, tab);   // extra pagina's uit beheer.js
@@ -277,6 +313,12 @@ function tabBalans() {
   return `<div class="kaart"><p class="klein" style="margin:0">Totaal debet ${eur(som(d.balans, (b) => b.debet))} · totaal credit ${eur(som(d.balans, (b) => b.credit))}</p>${groepen.map(blok).join('')}</div>${lev}`;
 }
 
+// Het oogje naast een wachtwoordveld: toont of verbergt wat je typt.
+document.addEventListener('click', (ev) => {
+  const knop = ev.target.closest('[data-oog]'); if (!knop) return;
+  const veldje = knop.parentElement.querySelector('input'); veldje.type = veldje.type === 'password' ? 'text' : 'password';
+});
+
 // ---- opstarten --------------------------------------------------------------------
 window.addEventListener('hashchange', route);
 // Supabase meldt elke wijziging van de login (aanmelden, afmelden). We herstarten dan,
@@ -285,6 +327,7 @@ sb.auth.onAuthStateChange((gebeurtenis, sessie) => {
   // Bij het laden komt er altijd één INITIAL_SESSION; daarna herstarten we enkel als er een andere
   // gebruiker is (aan- of afmelden), zodat een ingevuld formulier niet verdwijnt als je van tabblad wisselt.
   const zelfde = (sessie?.user?.id ?? null) === (S.sessie?.user?.id ?? null);
-  if (gebeurtenis === 'INITIAL_SESSION' || !zelfde) setTimeout(() => { S.vme = null; S.kantoor = null; start(); }, 0);
+  if (gebeurtenis === 'PASSWORD_RECOVERY') S.herstel = true;
+  if (gebeurtenis === 'INITIAL_SESSION' || gebeurtenis === 'PASSWORD_RECOVERY' || !zelfde) setTimeout(() => { S.vme = null; S.kantoor = null; start(); }, 0);
 });
 start();
