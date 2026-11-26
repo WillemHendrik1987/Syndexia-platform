@@ -34,7 +34,7 @@ UIT.bind.dossiers = async () => {
   let dossiers, notities = [], taken, leden;
   try {
     [dossiers, taken, leden] = await Promise.all([
-      q(sb.from('dossier').select('id, nummer, titel, soort, status, omschrijving, kavel_id, leverancier_id, geopend_op, afgesloten_op').eq('vme_id', v.id).order('nummer', { ascending: false })),
+      q(sb.from('dossier').select('id, nummer, titel, soort, status, omschrijving, kavel_id, leverancier_id, geopend_op, afgesloten_op, bron, categorie, dringend, melder_naam, melder_contact, melder_plaats, ai_samenvatting, gevraagd_aan, aanvaard_op').eq('vme_id', v.id).order('nummer', { ascending: false })),
       q(sb.from('taak').select('id, dossier_id, titel, omschrijving, vervaldatum, toegewezen_aan, klaar_op').eq('vme_id', v.id).order('vervaldatum')),
       werkLeden(),
     ]);
@@ -45,14 +45,17 @@ UIT.bind.dossiers = async () => {
   const toon1 = dossiers.filter((x) => S.dossierAlle || x.status !== 'afgesloten'), nDicht = dossiers.filter((x) => x.status === 'afgesloten').length;
   const pil = (s) => `<span class="pil ${s === 'afgesloten' ? 'ok' : s === 'wacht op derde' ? 'warn' : ''}">${esc(s)}</span>`;
 
-  doel.innerHTML = `<div class="kaart"><details${dossiers.length ? '' : ' open'}><summary style="cursor:pointer;font-weight:600">+ Nieuw dossier</summary>
+  doel.innerHTML = `${UIT.meldKaart ? UIT.meldKaart() : ''}<div class="kaart"><details${dossiers.length ? '' : ' open'}><summary style="cursor:pointer;font-weight:600">+ Nieuw dossier</summary>
       <form id="fdn" style="margin-top:10px"><div class="rij">${veld('Titel', inp('titel', 'required placeholder="bv. Waterinsijpeling dak"'), '3 1 260px')}${veld('Soort', kies('soort', werkOpties(DOSSIER_SOORT, 'herstelling')))}</div>
         <div class="rij">${veld('Kavel (als het één kavel betreft)', kies('kavel', werkOpties(kavelOpt, null, 'gemene delen')))}${veld('Leverancier', kies('lev', werkOpties(levOpt, null, 'nog geen')))}</div>
         <label>Omschrijving</label><textarea name="omschrijving" rows="3" style="width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit"></textarea>
         <p><button>Dossier openen</button></p></form></details></div>
     ${toon1.map((x) => { const tk = taken.filter((t) => t.dossier_id === x.id), nt = notities.filter((n) => n.dossier_id === x.id), nOpen = tk.filter((t) => !t.klaar_op).length;
       return `<div class="kaart"><details class="dossier" data-id="${x.id}"${S.dossierOpen === x.id ? ' open' : ''}>
-        <summary style="cursor:pointer"><b>#${x.nummer} ${esc(x.titel)}</b> ${pil(x.status)} <span class="klein">${esc(x.soort)} · geopend ${dat(x.geopend_op)}${x.afgesloten_op ? ` · afgesloten ${dat(x.afgesloten_op)}` : ''}${nOpen ? ` · ${nOpen} open taak${nOpen === 1 ? '' : 'en'}` : ''}</span></summary>
+        <summary style="cursor:pointer"><b>#${x.nummer} ${esc(x.titel)}</b> ${pil(x.status)}${x.dringend ? ' <span class="pil fout">dringend</span>' : ''}${x.bron === 'qr' ? ' <span class="pil">QR-melding</span>' : ''} <span class="klein">${esc(x.soort)} · geopend ${dat(x.geopend_op)}${x.afgesloten_op ? ` · afgesloten ${dat(x.afgesloten_op)}` : ''}${nOpen ? ` · ${nOpen} open taak${nOpen === 1 ? '' : 'en'}` : ''}</span></summary>
+        ${x.bron === 'qr' ? `<p class="klein">Gemeld door <b>${esc(x.melder_naam)}</b> (${esc(x.melder_contact)})${x.melder_plaats ? ` · ${esc(x.melder_plaats)}` : ''}${x.categorie ? ` · ${esc(x.categorie)}` : ''}</p>
+          ${x.gevraagd_aan ? `<p class="klein">Vraag tot interventie verstuurd naar ${esc(d.leveranciers.find((l) => l.id === x.gevraagd_aan)?.naam ?? 'leverancier')}: ${x.aanvaard_op ? `<span class="pil ok">aangenomen op ${werkTijd(x.aanvaard_op)}</span>` : '<span class="pil warn">nog niet aangenomen</span>'}</p>` : ''}
+          ${x.ai_samenvatting ? `<p class="klein"><b>Samenvatting AI:</b> ${esc(x.ai_samenvatting)}</p>` : ''}` : ''}
         ${x.omschrijving ? `<p style="white-space:pre-wrap">${esc(x.omschrijving)}</p>` : ''}
         <form class="fds" data-id="${x.id}"><div class="rij">${veld('Status', kies('status', werkOpties(DOSSIER_STATUS, x.status)))}${veld('Soort', kies('soort', werkOpties(DOSSIER_SOORT, x.soort)))}${veld('Kavel', kies('kavel', werkOpties(kavelOpt, x.kavel_id, 'gemene delen')))}${veld('Leverancier', kies('lev', werkOpties(levOpt, x.leverancier_id, 'nog geen')))}</div>
           <p><button class="stil">Wijziging opslaan</button></p></form>
@@ -79,6 +82,7 @@ UIT.bind.dossiers = async () => {
   stuur('form.fdt', async (f) => { await q(sb.from('taak').insert({ kantoor_id: S.kantoor.id, dossier_id: f.dataset.id, titel: f.titel.value.trim(), vervaldatum: ofNull(f.verval.value), toegewezen_aan: ofNull(f.wie.value) })); });
   stuur('form.fdo', async (f) => { await q(sb.from('dossier_notitie').insert({ kantoor_id: S.kantoor.id, dossier_id: f.dataset.id, tekst: f.tekst.value.trim() })); });
   bindTaken(doel, opnieuw);
+  if (UIT.meldBind) UIT.meldBind(doel, opnieuw);
 };
 
 // ---- startscherm: open taken ----------------------------------------------------------

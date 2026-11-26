@@ -98,6 +98,7 @@ function schermNieuwWachtwoord() {
 
 // Na het aanmelden: uitnodigingen aanvaarden (maakt je lid van je kantoor) en het kantoor ophalen.
 async function start() {
+  if (UIT.openbaar && UIT.openbaar()) return;   // pagina's zonder login, bv. het meldformulier achter de QR-code
   const { data: { session } } = await sb.auth.getSession();
   S.sessie = session;
   if (!session) return schermLogin();
@@ -330,7 +331,7 @@ document.addEventListener('click', (ev) => {
 });
 
 // ---- opstarten --------------------------------------------------------------------
-window.addEventListener('hashchange', route);
+window.addEventListener('hashchange', () => { if (UIT.openbaar && UIT.openbaar()) return; route(); });
 // Supabase meldt elke wijziging van de login (aanmelden, afmelden). We herstarten dan,
 // via setTimeout omdat je binnen deze melding zelf geen Supabase-vragen mag stellen.
 sb.auth.onAuthStateChange((gebeurtenis, sessie) => {
