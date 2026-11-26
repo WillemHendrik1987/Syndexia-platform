@@ -78,7 +78,7 @@ UIT.bind.overdracht = () => {
 };
 
 // ---- pagina: overname -------------------------------------------------------------------
-UIT.vandaag.push('<p style="margin:-8px 0 16px"><a class="knop licht" href="#/overname">Gebouw overnemen</a></p>');
+UIT.vandaag.push('<p><a class="knop licht" href="#/overname">Gebouw overnemen</a></p>');
 UIT.routes.overname = async () => {
   const jaar = new Date().getFullYear(), st = (S.overname ??= { data: null });
   const d = st.data;

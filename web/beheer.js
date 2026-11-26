@@ -39,7 +39,7 @@ async function ververs(tekst) {
 async function klaar(tekst) { S.bericht = { soort: 'ok', tekst }; await laadBoekjaar(); schermVme(); }
 
 // ---- startscherm: extra knoppen -------------------------------------------------
-UIT.vandaag.push(`<p style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 16px"><a class="knop" href="#/nieuw">+ Nieuwe VME</a><a class="knop licht" href="#/leveranciers">Leveranciers</a></p>`);
+UIT.vandaag.push(`<p style="display:contents"><a class="knop" href="#/nieuw">+ Nieuwe VME</a><a class="knop licht" href="#/leveranciers">Leveranciers</a></p>`);
 
 // ---- pagina: nieuwe VME -----------------------------------------------------------
 UIT.routes.nieuw = async () => {

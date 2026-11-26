@@ -86,7 +86,7 @@ UIT.bind.dossiers = async () => {
 };
 
 // ---- startscherm: open taken ----------------------------------------------------------
-UIT.vandaag.push('<div id="taken-start"></div>');
+UIT.vandaag.push('<p><a class="knop licht" href="#/taken">Taken</a></p>', '<div id="taken-start"></div>');
 (UIT.naVandaag ??= []).push(async () => {
   const doel = document.getElementById('taken-start'); if (!doel) return;
   try {

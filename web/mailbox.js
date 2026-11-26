@@ -7,9 +7,24 @@
 // pas als jij koppelt of er een dossier van maakt, hangt de mail aan een VME.
 // Een rappel of aanmaning wordt gemeld, nooit geboekt.
 // =============================================================================
-UIT.vandaag.push('<p style="margin:-8px 0 16px"><a class="knop licht" href="#/mailbox">Mailbox</a></p>');
+UIT.vandaag.push('<p><a class="knop licht" href="#/mailbox">Mailbox <span id="mbteller"></span></a></p>');
+// Op het startscherm: hoeveel mails wachten er nog?
+(UIT.naVandaag ??= []).push(async () => {
+  try { const nieuw = await q(sb.from('inkomende_mail').select('id').eq('status', 'nieuw').limit(100)); const vak = document.getElementById('mbteller'); if (vak && nieuw.length) vak.innerHTML = `<span class="pil fout">${nieuw.length}${nieuw.length === 100 ? '+' : ''} nieuw</span>`; } catch (e) { /* geen teller is geen ramp */ }
+});
+// Haalt de doorgestuurde mails op. Gebeurt vanzelf bij het openen van de Mailbox (hoogstens om de minuut).
+async function mailboxHaal() {
+  const { data, error } = await sb.functions.invoke('mailbox', { body: {} });
+  if (error || data?.fout) { let t = data?.fout ?? error.message; try { t = (await error.context.json()).fout ?? t; } catch (e) { /* geen uitleg */ } throw new Error(t); }
+  return data;
+}
 UIT.routes.mailbox = async () => {
-  const st = (S.mailbox ??= { alle: false, open: null });
+  const st = (S.mailbox ??= { alle: false, open: null, laatst: 0 });
+  if (Date.now() - st.laatst > 60000) {
+    st.laatst = Date.now();
+    try { const uit = await mailboxHaal(); if (uit.bewaard) S.bericht = { soort: 'ok', tekst: `${uit.bewaard} nieuwe mail(s) binnengehaald.${uit.nog ? ` Er wachten er nog ${uit.nog}.` : ''}` }; else if (uit.fouten.length) S.bericht = { soort: 'fout', tekst: uit.fouten[0] }; }
+    catch (e) { if (!/geen mailbox gekoppeld/.test(e.message)) S.bericht = { soort: 'fout', tekst: e.message }; }
+  }
   let info = {};
   try { const { data } = await sb.functions.invoke('mailbox', { method: 'GET' }); info = data ?? {}; } catch (e) { /* functie niet bereikbaar: de lijst werkt nog */ }
   const [mails, vmes] = await Promise.all([
@@ -19,8 +34,8 @@ UIT.routes.mailbox = async () => {
   const naam = Object.fromEntries(vmes.map((v) => [v.id, v.naam])), lijst = mails.filter((m) => st.alle || m.status === 'nieuw'), nKlaar = mails.filter((m) => m.status === 'behandeld').length;
   const tijd = (t) => new Date(t).toLocaleString('nl-BE', { dateStyle: 'short', timeStyle: 'short' });
   toon(`${terug}<div class="kaart"><h2>Mailbox</h2>
-    ${info.gekoppeld ? `<p class="klein">Stuur in je mailprogramma een kopie van elke inkomende mail door naar ${info.ontvangstadres ? `<b>${esc(info.ontvangstadres)}</b>` : 'het ontvangstadres van het platform'}. De AI stelt per mail een VME voor; jij beslist.</p>
-      <p><button id="mbhaal">Mails ophalen</button> <span class="klein" id="mbstatus"></span></p>`
+    ${info.gekoppeld ? `<p class="klein">Stuur in je mailprogramma een kopie van elke inkomende mail door naar ${info.ontvangstadres ? `<b>${esc(info.ontvangstadres)}</b>` : 'het ontvangstadres van het platform'}. De mails komen vanzelf binnen als je deze pagina opent. De AI stelt per mail een VME voor; jij beslist.</p>
+      <p><button class="stil" id="mbhaal">Nu opnieuw ophalen</button> <span class="klein" id="mbstatus"></span></p>`
       : '<div class="melding fout">Voor dit kantoor is nog geen mailbox gekoppeld. Vraag de beheerder van het platform om het ontvangstadres in te stellen.</div>'}</div>
     ${lijst.map((m) => { const voorstel = m.vme_id ?? m.ai_vme_id ?? '', rappel = m.ai_soort === 'rappel of aanmaning';
       return `<div class="kaart"><details class="mb" data-id="${m.id}"${st.open === m.id ? ' open' : ''}>
@@ -40,8 +55,8 @@ UIT.routes.mailbox = async () => {
   const haal = document.getElementById('mbhaal');
   if (haal) haal.onclick = async () => {
     haal.disabled = true; document.getElementById('mbstatus').textContent = 'Bezig met ophalen…';
-    const { data, error } = await sb.functions.invoke('mailbox', { body: {} });
-    if (error || data?.fout) { let t = data?.fout ?? error.message; try { t = (await error.context.json()).fout ?? t; } catch (e) { /* geen uitleg */ } fout({ message: t }); return opnieuw(); }
+    let data; st.laatst = Date.now();
+    try { data = await mailboxHaal(); } catch (e) { fout(e); return opnieuw(); }
     S.bericht = { soort: data.fouten.length ? 'fout' : 'ok', tekst: `${data.bewaard} nieuwe mail(s) opgehaald.${data.nog ? ` Er wachten er nog ${data.nog}: klik opnieuw.` : ''}${data.fouten.length ? ` ${data.fouten.length} mislukt: ${data.fouten[0]}` : ''}` };
     opnieuw();
   };

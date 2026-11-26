@@ -37,7 +37,7 @@ const uitleg = (tekst) => (UITLEG.find(([patroon]) => patroon.test(tekst)) ?? [0
 async function q(vraag) { const { data, error } = await vraag; if (error) throw new Error(uitleg(error.message)); return data; }
 const tabel = (koppen, rijen, voet = '') => `<div class="schuif"><table><thead><tr>${koppen.map((k) => `<th${k.startsWith('#') ? ' class="n"' : ''}>${esc(k.replace('#', ''))}</th>`).join('')}</tr></thead><tbody>${rijen.join('') || `<tr><td colspan="${koppen.length}" class="leeg">Niets te tonen.</td></tr>`}${voet}</tbody></table></div>`;
 const cel = (v) => `<td>${esc(v)}</td>`, celN = (v) => `<td class="n">${eur(v)}</td>`;
-function toon(html) { const b = S.bericht; S.bericht = null; $app.innerHTML = (b ? `<div class="melding ${b.soort}">${esc(b.tekst)}</div>` : '') + html; }
+function toon(html) { const b = S.bericht; S.bericht = null; $app.innerHTML = (b ? `<div class="melding ${b.soort}">${esc(b.tekst)}</div>` : '') + html; if (UIT.synToon) UIT.synToon(); }
 function fout(e) { S.bericht = { soort: 'fout', tekst: e.message || String(e) }; }
 
 // ---- aanmelden --------------------------------------------------------------
@@ -154,7 +154,10 @@ async function schermVandaag() {
       <div><b>${eur(som(open.filter((o) => o.vme_id === v.id), (o) => o.openstaand))}</b><span>provisies openstaand</span></div>
       ${nZonder ? `<div><b>${nZonder}</b><span class="pil fout">kost zonder verdeling</span></div>` : ''}</div></a>`;
   };
-  toon(`${UIT.vandaag.join('')}<h2 style="margin:6px 0 14px">${esc(S.kantoor.naam)} · ${vmes.length} VME${vmes.length === 1 ? '' : "'s"}</h2>${vmes.map(kaart).join('') || '<p class="leeg">Nog geen VME ingeladen.</p>'}`);
+  const uur = new Date().getHours(), groet = uur < 12 ? 'Goeiemorgen' : uur < 18 ? 'Goeiemiddag' : 'Goeienavond';
+  toon(`<div class="groet"><h2>${groet}</h2><p>${esc(S.kantoor.naam)} beheert ${vmes.length} ${vmes.length === 1 ? 'gebouw' : 'gebouwen'}.</p></div>
+    <div class="acties">${UIT.vandaag.join('')}</div>
+    <div class="vmes">${vmes.map(kaart).join('')}</div>${vmes.length ? '' : '<div class="kaart"><p class="leeg">Nog geen gebouw. Begin met "Nieuwe VME" of neem een gebouw over van een vorige syndicus.</p></div>'}`);
   (UIT.naVandaag ?? []).forEach((f) => f());   // extra blokken op het startscherm, bv. de open taken
 }
 
@@ -195,15 +198,23 @@ async function laadBoekjaar() {
 // ---- scherm: één VME --------------------------------------------------------------
 const TABS = [['overzicht', 'Overzicht'], ['kosten', 'Kosten'], ['provisies', 'Provisies'], ['afrekening', 'Afrekening'], ['balans', 'Balans']];
 TABS.push(...UIT.tabs);   // extra tabbladen uit beheer.js
+// De tabbladen staan in drie groepen; een tabblad dat in geen groep staat, komt bij Opvolging.
+const GROEPEN = [['Gebouw', ['overzicht', 'beheer', 'contacten', 'doc']], ['Boekhouding', ['kosten', 'provisies', 'afrekening', 'balans', 'bank', 'jaar', 'ai']], ['Opvolging', ['dossiers', 'av', 'mail', 'verkoop', 'overdracht']]];
+const groepVan = (tab) => (GROEPEN.find(([, t]) => t.includes(tab)) ?? GROEPEN[2])[0];
 function schermVme() {
-  const v = S.vme, d = S.d;
+  const v = S.vme, d = S.d, alle = TABS.filter(([k]) => { const f = { overzicht: 1, kosten: 1, provisies: 1, afrekening: 1, balans: 1, ...UIT.fn }; return f[k]; });
+  if (!alle.some(([k]) => k === S.tab)) S.tab = 'overzicht';
+  const groep = groepVan(S.tab), volgorde = GROEPEN.find(([g]) => g === groep)[1];
+  const inGroep = alle.filter(([k]) => groepVan(k) === groep).sort((a, b) => (volgorde.indexOf(a[0]) + 99) % 99 - (volgorde.indexOf(b[0]) + 99) % 99);
   const kop = `<p><a href="#/" style="color:var(--b)">← alle VME's</a></p>
     <div class="rij" style="align-items:center"><div style="flex:3 1 260px"><h2>${esc(v.naam)}</h2><span class="klein">${esc(v.ondernemingsnummer ?? '')}</span></div>
     <div><label>Boekjaar</label><select id="bj">${d.jaren.map((j) => `<option value="${j.id}"${j.id === S.bj?.id ? ' selected' : ''}>${esc(j.omschrijving)}${j.afgesloten ? ' (afgesloten)' : ''}</option>`).join('') || '<option>geen boekjaar</option>'}</select></div></div>
-    <div class="tabs">${TABS.map(([k, n]) => `<button data-tab="${k}" class="${k === S.tab ? 'aan' : ''}">${n}</button>`).join('')}</div>`;
+    <div class="groepen">${GROEPEN.map(([g]) => `<button data-groep="${g}" class="${g === groep ? 'aan' : ''}">${g}</button>`).join('')}</div>
+    <div class="tabs">${inGroep.map(([k, n]) => `<button data-tab="${k}" class="${k === S.tab ? 'aan' : ''}">${n}</button>`).join('')}</div>`;
   toon(kop + ({ overzicht: tabOverzicht, kosten: tabKosten, provisies: tabProvisies, afrekening: tabAfrekening, balans: tabBalans, ...UIT.fn }[S.tab] ?? tabOverzicht)());
   document.getElementById('bj').onchange = async (ev) => { S.bj = d.jaren.find((j) => j.id === ev.target.value); try { await laadBoekjaar(); } catch (e) { fout(e); } schermVme(); };
   document.querySelectorAll('[data-tab]').forEach((b) => { b.onclick = () => { location.hash = `#/vme/${v.id}/${b.dataset.tab}`; }; });
+  document.querySelectorAll('[data-groep]').forEach((b) => { b.onclick = () => { const eerste = GROEPEN.find(([g]) => g === b.dataset.groep)[1].find((k) => alle.some(([a]) => a === k)); if (eerste) location.hash = `#/vme/${v.id}/${eerste}`; }; });
   ({ kosten: bindKosten, provisies: bindProvisies, ...UIT.bind }[S.tab] ?? (() => {}))();
 }
 

@@ -6,56 +6,127 @@
 <meta name="robots" content="noindex">
 <title>Syndexia Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/dist/umd/supabase.js" integrity="sha384-A97u3Qnt9GZHURO9YJZRe7VQgGUeFzcv6I1oIGnUTxQrCxnpQMwR0/G8F2zt9abZ" crossorigin="anonymous"></script>
 <style>
-:root{--b:#8B1A4A;--bd:#6d1439;--bl:#f7eef2;--t:#1f1a1c;--g:#6b6166;--l:#e7dfe2;--bg:#faf8f9;--ok:#1d7a4f;--fout:#b3261e;--warn:#9a6700}
+/* Kleuren: bordeaux is de huiskleur van Syndexia; "inkt" is een diep aubergine voor tekst en de kopbalk;
+   "koper" (de kleur van een belplaat) is het accent en de kleur van Syn. De achtergrond is koel lila-grijs. */
+:root{--b:#8B1A4A;--bd:#5E1132;--bl:#F6E9EF;--inkt:#2B1622;--t:#2B1622;--g:#6E6272;--l:#E4DDE6;--bg:#F3F0F5;--vlak:#fff;--koper:#D9A441;--koperl:#FBF1DA;--ok:#17734A;--fout:#B3261E;--warn:#8A5A00;--r:14px}
 *{box-sizing:border-box}
-body{margin:0;font:15px/1.5 Inter,system-ui,sans-serif;color:var(--t);background:var(--bg)}
-h1,h2,h3{font-family:"Playfair Display",Georgia,serif;font-weight:600;margin:0}
-h1{font-size:22px}h2{font-size:20px}h3{font-size:16px;margin:22px 0 8px}
-header{background:var(--b);color:#fff;padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between}
-header a{color:#fff;text-decoration:none}
-header small{opacity:.85}
-main{max-width:1000px;margin:0 auto;padding:16px}
-.kaart{background:#fff;border:1px solid var(--l);border-radius:10px;padding:16px;margin:0 0 14px}
-a.kaart{display:block;color:inherit;text-decoration:none}
-a.kaart:hover{border-color:var(--b)}
-.rij{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+html{scroll-behavior:smooth}
+body{margin:0;font:15px/1.55 "Instrument Sans",system-ui,sans-serif;color:var(--t);background:var(--bg);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque","Instrument Sans",sans-serif;font-weight:700;margin:0;letter-spacing:-.01em;line-height:1.2}
+h1{font-size:19px}h2{font-size:23px}h3{font-size:17px;margin:22px 0 8px}h4{font-size:15px;font-weight:500;margin:18px 0 6px;color:var(--bd)}
+a{color:var(--b)}
+:focus-visible{outline:3px solid var(--koper);outline-offset:2px;border-radius:6px}
+header{background:var(--inkt);color:#fff;padding:10px 18px;display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:3px solid var(--koper)}
+header a{color:#fff;text-decoration:none;display:flex;align-items:center;gap:10px}
+header .merk{width:30px;height:30px;flex:none}
+header small{display:block;opacity:.7;font-size:12px;font-weight:400;font-family:"Instrument Sans",sans-serif;letter-spacing:0}
+#wie{display:flex;align-items:center;gap:6px;font-size:13px}
+#wie small{opacity:.8}
+main{max-width:1060px;margin:0 auto;padding:22px 16px 110px}
+.kaart{background:var(--vlak);border:1px solid var(--l);border-radius:var(--r);padding:18px;margin:0 0 14px}
+/* Een VME op het startscherm: een naamplaat met een bordeaux gevelrand. */
+a.kaart{display:block;color:inherit;text-decoration:none;border-left:6px solid var(--b);transition:transform .12s,box-shadow .12s}
+a.kaart:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(43,22,34,.55)}
+a.kaart h2{font-size:19px}
+.vmes{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.vmes a.kaart{margin:0}
+.rij{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .rij>*{flex:1 1 150px}
-.cijfers{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
-.cijfers div{min-width:110px}
-.cijfers b{display:block;font-size:18px}
+.cijfers{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--l)}
+.cijfers div{min-width:96px}
+.cijfers b{display:block;font:700 19px "Bricolage Grotesque",sans-serif}
 .cijfers span,.klein{color:var(--g);font-size:13px}
-label{display:block;font-size:13px;color:var(--g);margin-bottom:3px}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit;background:#fff}
-button{padding:9px 14px;border:0;border-radius:8px;background:var(--b);color:#fff;font:inherit;font-weight:500;cursor:pointer}
+label{display:block;font-size:13px;color:var(--g);margin-bottom:4px;font-weight:500}
+input,select,textarea{width:100%;padding:10px 11px;border:1px solid var(--l);border-radius:10px;font:inherit;background:#fff;color:var(--t);transition:border-color .12s,box-shadow .12s}
+input:focus,select:focus,textarea:focus{outline:0;border-color:var(--b);box-shadow:0 0 0 3px var(--bl)}
+input[type=checkbox],input[type=radio]{accent-color:var(--b);width:auto}
+input[type=file]{padding:8px;background:var(--bg);border-style:dashed}
+button{padding:10px 16px;border:0;border-radius:10px;background:var(--b);color:#fff;font:inherit;font-weight:600;cursor:pointer;transition:background .12s,transform .06s}
 button:hover{background:var(--bd)}
-button.stil{background:none;color:var(--b);padding:6px 8px}
-button:disabled{opacity:.5}
-.tabs{display:flex;flex-wrap:wrap;gap:4px;border-bottom:1px solid var(--l);margin:14px 0}
-.tabs button{background:none;color:var(--g);border-radius:8px 8px 0 0;white-space:nowrap}
-.tabs button.aan{color:var(--b);box-shadow:inset 0 -3px var(--b);font-weight:600}
+button:active{transform:translateY(1px)}
+button.stil{background:var(--bl);color:var(--bd);padding:7px 12px;font-weight:500}
+button.stil:hover{background:#EDD5E0}
+button:disabled{opacity:.5;cursor:default}
+header button.stil{background:rgba(255,255,255,.12)}
+header button.stil:hover{background:rgba(255,255,255,.22)}
+/* Navigatie in een VME: drie groepen, daaronder de tabbladen van de gekozen groep. */
+.groepen{display:inline-flex;gap:4px;padding:4px;background:#E7E0EA;border-radius:12px;margin:16px 0 0}
+.groepen button{background:none;color:var(--g);padding:8px 16px;border-radius:9px;font-weight:600}
+.groepen button:hover{background:rgba(255,255,255,.6)}
+.groepen button.aan{background:#fff;color:var(--bd);box-shadow:0 1px 3px rgba(43,22,34,.18)}
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid var(--l);margin:10px 0 16px}
+.tabs button{background:none;color:var(--g);border-radius:8px 8px 0 0;white-space:nowrap;font-weight:500;padding:9px 13px}
+.tabs button:hover{background:#fff;color:var(--t)}
+.tabs button.aan{color:var(--bd);box-shadow:inset 0 -3px var(--b);font-weight:600}
 .schuif{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:14px}
-th,td{padding:7px 9px;border-bottom:1px solid var(--l);text-align:left;white-space:nowrap}
-th{font-size:12px;color:var(--g);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+th,td{padding:8px 10px;border-bottom:1px solid var(--l);text-align:left;white-space:nowrap}
+th{font-size:13px;color:var(--g);font-weight:600}
+tbody tr:hover td{background:#FBF9FC}
 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 tr.tot td{font-weight:600;border-top:2px solid var(--t)}
-.pil{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;background:var(--bl);color:var(--b)}
-.pil.ok{background:#e6f4ec;color:var(--ok)}.pil.fout{background:#fbeae8;color:var(--fout)}.pil.warn{background:#fff4d6;color:var(--warn)}
-.melding{padding:10px 12px;border-radius:8px;margin:10px 0;background:var(--bl)}
-.melding.fout{background:#fbeae8;color:var(--fout)}.melding.ok{background:#e6f4ec;color:var(--ok)}
+.pil{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:500;background:var(--bl);color:var(--bd)}
+.pil.ok{background:#E2F3EA;color:var(--ok)}.pil.fout{background:#FBE7E5;color:var(--fout)}.pil.warn{background:var(--koperl);color:var(--warn)}
+.melding{padding:11px 14px;border-radius:10px;margin:0 0 14px;background:var(--bl);border-left:4px solid var(--b)}
+.melding.fout{background:#FBE7E5;color:var(--fout);border-color:var(--fout)}.melding.ok{background:#E2F3EA;color:var(--ok);border-color:var(--ok)}
 .leeg{color:var(--g);padding:14px 0}
-.knop{display:inline-block;padding:9px 14px;border-radius:8px;background:var(--b);color:#fff;text-decoration:none;font-weight:500}
-.knop.licht{background:var(--bl);color:var(--b)}
+.knop{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:10px;background:var(--b);color:#fff;text-decoration:none;font-weight:600}
+.knop:hover{background:var(--bd)}
+.knop.licht{background:#fff;color:var(--bd);border:1px solid var(--l);font-weight:500}
+.knop.licht:hover{background:var(--bl);border-color:var(--bl)}
+/* De knoppen op het startscherm komen uit verschillende modules; hier vormen ze één rij. */
+.acties{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.acties>p{display:contents;margin:0}
+.acties>#taken-start{flex:1 0 100%;margin-top:6px}
+.acties>#taken-start .kaart{margin:0}
+.groet{margin:4px 0 14px}
+.groet h2{font-size:27px}
+.groet p{margin:4px 0 0;color:var(--g)}
 input.smal{width:90px;text-align:right;padding:6px 8px}
-summary{cursor:pointer}
+summary{cursor:pointer;list-style:none;position:relative;padding-left:20px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";position:absolute;left:3px;top:.55em;width:7px;height:7px;border-right:2px solid var(--b);border-bottom:2px solid var(--b);transform:rotate(-45deg);transition:transform .12s}
+details[open]>summary::before{transform:rotate(45deg)}
+/* Syn, het assistentje: een koperen huisje rechtsonder, met een gesprekspaneel. */
+#synknop{position:fixed;right:20px;bottom:20px;z-index:40;width:62px;height:62px;padding:11px;border-radius:50%;background:var(--koper);box-shadow:0 10px 26px -8px rgba(43,22,34,.6);transition:transform .15s}
+#synknop:hover{background:var(--koper);transform:scale(1.07) rotate(-4deg)}
+#synknop.open{transform:scale(.92)}
+.synogen{transform-origin:32px 34px;animation:synknipper 6s infinite}
+@keyframes synknipper{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+#synpaneel{position:fixed;right:20px;bottom:94px;z-index:40;width:min(390px,calc(100vw - 24px));height:min(560px,calc(100vh - 130px));background:#fff;border-radius:18px;box-shadow:0 24px 60px -18px rgba(43,22,34,.6);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--l)}
+#synpaneel[hidden],#synknop[hidden]{display:none}
+.synkop{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--inkt);color:#fff}
+.synkop>div{flex:1;line-height:1.25;min-width:0}.synkop span{font-size:12px;opacity:.75;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.synkop b{font:700 16px "Bricolage Grotesque",sans-serif}
+.synkopfiguur{width:38px;height:38px;padding:6px;border-radius:50%;background:var(--koper);flex:none}
+.synlicht{background:rgba(255,255,255,.12);padding:6px 10px;font-weight:500;font-size:13px}
+.synlicht:hover{background:rgba(255,255,255,.24)}
+.syngesprek{flex:1;overflow-y:auto;padding:14px;background:var(--bg)}
+.synrij{display:flex;margin:0 0 10px}.synrij.ik{justify-content:flex-end}
+.synbel{max-width:86%;padding:9px 13px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.synrij.syn .synbel{background:#fff;border:1px solid var(--l);border-bottom-left-radius:4px}
+.synrij.ik .synbel{background:var(--b);color:#fff;border-bottom-right-radius:4px}
+.syntips{display:flex;flex-direction:column;gap:6px;align-items:flex-start;margin:4px 0 0}
+.syntip{background:var(--koperl);color:#5B3D00;padding:7px 12px;border-radius:99px;font-weight:500;font-size:13.5px;text-align:left}
+.syntip:hover{background:#F6E2B4}
+.synpuntjes{display:flex;gap:4px;padding:13px}.synpuntjes i{width:7px;height:7px;border-radius:50%;background:var(--g);animation:synpunt 1s infinite}
+.synpuntjes i:nth-child(2){animation-delay:.15s}.synpuntjes i:nth-child(3){animation-delay:.3s}
+@keyframes synpunt{0%,60%,100%{opacity:.25}30%{opacity:1}}
+#synform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--l);background:#fff}
+#synform button{padding:10px 14px}
+@media (max-width:560px){main{padding:16px 12px 100px}h2{font-size:21px}.groet h2{font-size:23px}.groepen{display:flex}.groepen button{flex:1;padding:8px 6px}
+  #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+@media print{header,#synknop,#synpaneel{display:none!important}body{background:#fff}}
 </style>
 </head>
 <body>
 <header>
-  <a href="#/"><h1>Syndexia Platform</h1><small>testversie</small></a>
+  <a href="#/"><svg class="merk" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 28 32 9l22 19v24a5 5 0 0 1-5 5H15a5 5 0 0 1-5-5z" fill="#D9A441"/><path d="M6 30 32 7l26 23" fill="none" stroke="#D9A441" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="20" y="30" width="9" height="10" rx="2" fill="#2B1622"/><rect x="35" y="30" width="9" height="10" rx="2" fill="#2B1622"/><rect x="27" y="45" width="10" height="12" rx="2" fill="#2B1622"/></svg><h1>Syndexia Platform<small>testversie</small></h1></a>
   <span id="wie"></span>
 </header>
 <main id="app"><p class="leeg">Laden…</p></main>
@@ -68,20 +139,20 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.22"></script>
-<script src="meer.js?v=0.22"></script>
-<script src="peppol.js?v=0.22"></script>
-<script src="docs.js?v=0.22"></script>
-<script src="ai.js?v=0.22"></script>
-<script src="mail.js?v=0.22"></script>
-<script src="portaal.js?v=0.22"></script>
-<script src="qr.js?v=0.22"></script>
-<script src="werk.js?v=0.22"></script>
-<script src="melding.js?v=0.22"></script>
-<script src="verkoop.js?v=0.22"></script>
-<script src="assistent.js?v=0.22"></script>
-<script src="migratie.js?v=0.22"></script>
-<script src="mailbox.js?v=0.22"></script>
-<script src="app.js?v=0.22"></script>
+<script src="beheer.js?v=0.23"></script>
+<script src="meer.js?v=0.23"></script>
+<script src="peppol.js?v=0.23"></script>
+<script src="docs.js?v=0.23"></script>
+<script src="ai.js?v=0.23"></script>
+<script src="mail.js?v=0.23"></script>
+<script src="portaal.js?v=0.23"></script>
+<script src="qr.js?v=0.23"></script>
+<script src="werk.js?v=0.23"></script>
+<script src="melding.js?v=0.23"></script>
+<script src="verkoop.js?v=0.23"></script>
+<script src="assistent.js?v=0.23"></script>
+<script src="migratie.js?v=0.23"></script>
+<script src="mailbox.js?v=0.23"></script>
+<script src="app.js?v=0.23"></script>
 </body>
 </html>
