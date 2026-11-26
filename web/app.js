@@ -154,6 +154,7 @@ async function schermVandaag() {
       ${nZonder ? `<div><b>${nZonder}</b><span class="pil fout">kost zonder verdeling</span></div>` : ''}</div></a>`;
   };
   toon(`${UIT.vandaag.join('')}<h2 style="margin:6px 0 14px">${esc(S.kantoor.naam)} · ${vmes.length} VME${vmes.length === 1 ? '' : "'s"}</h2>${vmes.map(kaart).join('') || '<p class="leeg">Nog geen VME ingeladen.</p>'}`);
+  (UIT.naVandaag ?? []).forEach((f) => f());   // extra blokken op het startscherm, bv. de open taken
 }
 
 // ---- gegevens van één VME -------------------------------------------------------
