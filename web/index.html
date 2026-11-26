@@ -60,8 +60,8 @@ summary{cursor:pointer}
 </header>
 <main id="app"><p class="leeg">Laden…</p></main>
 <script>
-// De app bestaat uit drie bestanden. UIT is het aanhaakpunt waarmee beheer.js
-// tabbladen en pagina's toevoegt aan app.js; coda.mjs leest CODA-bestanden van de bank.
+// De app bestaat uit meerdere bestanden. UIT is het aanhaakpunt waarmee beheer.js en meer.js
+// tabbladen en pagina's toevoegen aan app.js; coda.mjs leest CODA-bestanden van de bank.
 window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 </script>
 <script type="module">
@@ -69,6 +69,7 @@ import { leesCoda, alsBedrag } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag;
 </script>
 <script src="beheer.js"></script>
+<script src="meer.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

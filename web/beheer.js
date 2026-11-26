@@ -175,7 +175,7 @@ UIT.bind.bank = async () => {
   try {
     [rekeningen, open, afschriften] = await Promise.all([
       q(sb.from('bankrekening').select('id, iban, omschrijving, soort').eq('vme_id', v.id).order('iban')),
-      q(sb.from('v_bank_te_boeken').select('*').eq('vme_id', v.id).order('boekdatum')),
+      q(sb.from('v_bank_te_boeken').select('*').eq('vme_id', v.id).order('boekdatum').order('bedrag', { ascending: false })),
       q(sb.from('v_bankafschrift_aansluiting').select('volgnummer, datum_nieuw, saldo_oud, saldo_nieuw, sluit_aan').eq('vme_id', v.id).order('datum_nieuw', { ascending: false })),
     ]);
   } catch (e) { doel.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; return; }

@@ -30,6 +30,8 @@ const UITLEG = [
   [/grootboekrekening_vme_id_nummer_key/, 'Deze rekening bestaat al.'], [/nummer_check/, 'Een rekeningnummer bestaat uit 2 tot 8 cijfers.'],
   [/boekjaar.*excl/, 'Dit boekjaar overlapt met een bestaand boekjaar.'], [/boekjaar_check/, 'De einddatum moet na de begindatum liggen.'],
   [/kavel_relatie.*excl/, 'Dit contact is in die periode al eigenaar van deze kavel.'],
+  [/update or delete on table .* violates foreign key/, 'Dit kan niet gewist worden: er hangen nog kosten, boekingen of vergaderingen aan.'],
+  [/agendapunt_vergadering_id_volgnummer_key/, 'Dit volgnummer bestaat al in de agenda.'],
 ];
 const uitleg = (tekst) => (UITLEG.find(([patroon]) => patroon.test(tekst)) ?? [0, tekst])[1];
 async function q(vraag) { const { data, error } = await vraag; if (error) throw new Error(uitleg(error.message)); return data; }
