@@ -99,6 +99,14 @@ details[open]>summary::before{transform:rotate(45deg)}
 @keyframes synknipper{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
 #synpaneel{position:fixed;right:20px;bottom:94px;z-index:40;width:min(390px,calc(100vw - 24px));height:min(560px,calc(100vh - 130px));background:#fff;border-radius:18px;box-shadow:0 24px 60px -18px rgba(43,22,34,.6);display:flex;flex-direction:column;overflow:hidden;border:1px solid var(--l)}
 #synpaneel[hidden],#synknop[hidden]{display:none}
+#synknop::before{content:"Vraag het aan Syn";position:absolute;right:72px;top:50%;transform:translateY(-50%);background:var(--inkt);color:#fff;padding:7px 12px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap;box-shadow:0 6px 16px -8px rgba(43,22,34,.6)}
+#synknop.open::before{display:none}
+.synacties{list-style:none;margin:8px 0 0;padding:8px 0 0;border-top:1px solid rgba(43,22,34,.12);font-size:13px}
+.synacties li{padding-left:20px;position:relative;margin:3px 0}
+.synacties li::before{content:"✓";position:absolute;left:0;color:#1F7A4D;font-weight:700}
+.synvoorstel{margin:4px 0 10px;padding:12px;border:1px solid var(--koper);border-radius:12px;background:#FFFBF2;display:flex;flex-direction:column;gap:4px}
+.synvoorstel p{margin:6px 0;white-space:pre-wrap;font-size:14px}
+.synknoppen{display:flex;gap:8px;flex-wrap:wrap}.synknoppen button{padding:8px 12px}
 .synkop{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--inkt);color:#fff}
 .synkop>div{flex:1;line-height:1.25;min-width:0}.synkop span{font-size:12px;opacity:.75;display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .synkop b{font:700 16px "Bricolage Grotesque",sans-serif}
@@ -119,7 +127,7 @@ details[open]>summary::before{transform:rotate(45deg)}
 #synform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--l);background:#fff}
 #synform button{padding:10px 14px}
 @media (max-width:560px){main{padding:16px 12px 100px}h2{font-size:21px}.groet h2{font-size:23px}.groepen{display:flex}.groepen button{flex:1;padding:8px 6px}
-  #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}}
+  #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}#synknop::before{content:"Syn"}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 @media print{header,#synknop,#synpaneel{display:none!important}body{background:#fff}}
 </style>
@@ -139,21 +147,21 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.24"></script>
-<script src="meer.js?v=0.24"></script>
-<script src="peppol.js?v=0.24"></script>
-<script src="docs.js?v=0.24"></script>
-<script src="ai.js?v=0.24"></script>
-<script src="mail.js?v=0.24"></script>
-<script src="portaal.js?v=0.24"></script>
-<script src="qr.js?v=0.24"></script>
-<script src="werk.js?v=0.24"></script>
-<script src="melding.js?v=0.24"></script>
-<script src="verkoop.js?v=0.24"></script>
-<script src="assistent.js?v=0.24"></script>
-<script src="migratie.js?v=0.24"></script>
-<script src="mailbox.js?v=0.24"></script>
-<script src="attesten.js?v=0.24"></script>
-<script src="app.js?v=0.24"></script>
+<script src="beheer.js?v=0.25"></script>
+<script src="meer.js?v=0.25"></script>
+<script src="peppol.js?v=0.25"></script>
+<script src="docs.js?v=0.25"></script>
+<script src="ai.js?v=0.25"></script>
+<script src="mail.js?v=0.25"></script>
+<script src="portaal.js?v=0.25"></script>
+<script src="qr.js?v=0.25"></script>
+<script src="werk.js?v=0.25"></script>
+<script src="melding.js?v=0.25"></script>
+<script src="verkoop.js?v=0.25"></script>
+<script src="assistent.js?v=0.25"></script>
+<script src="migratie.js?v=0.25"></script>
+<script src="mailbox.js?v=0.25"></script>
+<script src="attesten.js?v=0.25"></script>
+<script src="app.js?v=0.25"></script>
 </body>
 </html>

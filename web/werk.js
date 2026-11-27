@@ -59,6 +59,11 @@ UIT.bind.dossiers = async () => {
         ${x.omschrijving ? `<p style="white-space:pre-wrap">${esc(x.omschrijving)}</p>` : ''}
         <form class="fds" data-id="${x.id}"><div class="rij">${veld('Status', kies('status', werkOpties(DOSSIER_STATUS, x.status)))}${veld('Soort', kies('soort', werkOpties(DOSSIER_SOORT, x.soort)))}${veld('Kavel', kies('kavel', werkOpties(kavelOpt, x.kavel_id, 'gemene delen')))}${veld('Leverancier', kies('lev', werkOpties(levOpt, x.leverancier_id, 'nog geen')))}</div>
           <p><button class="stil">Wijziging opslaan</button></p></form>
+        ${x.status === 'afgesloten' ? '' : `<details><summary style="cursor:pointer;font-weight:600">Werkopdracht sturen naar een leverancier</summary>
+          <form class="fwo" data-id="${x.id}" style="margin-top:8px"><div class="rij">${veld('Leverancier', kies('lev', werkOpties(levOpt, x.gevraagd_aan ?? x.leverancier_id, 'kies')), '2 1 220px')}</div>
+            <label>Opdracht</label><textarea name="bericht" rows="3" required maxlength="3000" placeholder="Wat moet er gebeuren? Het adres van het gebouw en de link om aan te nemen komen er vanzelf bij." style="width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit"></textarea>
+            <p><button>Opdracht mailen</button> <button type="button" class="stil" data-wa>Klaarzetten in WhatsApp</button></p>
+            <p class="klein">De leverancier krijgt een link om de opdracht aan te nemen; dat zie je daarna hier in het dossier. Bij WhatsApp opent het gesprek met de tekst ingevuld en verstuur je zelf.</p></form></details>`}
         <h4>Taken</h4>${tk.length ? tabel(['', 'Taak', 'Tegen', 'Voor'], tk.map((t) => taakRij(t, leden))) : '<p class="leeg">Nog geen taken.</p>'}
         <form class="fdt" data-id="${x.id}"><div class="rij">${veld('Nieuwe taak', inp('titel', 'required'), '3 1 220px')}${veld('Tegen', inp('verval', 'type="date"'))}${veld('Voor', kies('wie', werkOpties(ledenOpt, null, 'niemand')))}<div style="align-self:flex-end"><button class="stil">Toevoegen</button></div></div></form>
         <h4>Tijdlijn</h4>${nt.length ? nt.map((n) => `<p style="margin:6px 0"><span class="klein">${werkTijd(n.aangemaakt_op)} · ${esc(werkWie(leden, n.auteur))}</span><br><span style="white-space:pre-wrap">${esc(n.tekst)}</span></p>`).join('') : '<p class="leeg">Nog geen notities.</p>'}
@@ -81,6 +86,21 @@ UIT.bind.dossiers = async () => {
   stuur('form.fds', async (f) => { await q(sb.from('dossier').update({ status: f.status.value, soort: f.soort.value, kavel_id: ofNull(f.kavel.value), leverancier_id: ofNull(f.lev.value) }).eq('id', f.dataset.id)); S.bericht = { soort: 'ok', tekst: 'Dossier bijgewerkt.' }; });
   stuur('form.fdt', async (f) => { await q(sb.from('taak').insert({ kantoor_id: S.kantoor.id, dossier_id: f.dataset.id, titel: f.titel.value.trim(), vervaldatum: ofNull(f.verval.value), toegewezen_aan: ofNull(f.wie.value) })); });
   stuur('form.fdo', async (f) => { await q(sb.from('dossier_notitie').insert({ kantoor_id: S.kantoor.id, dossier_id: f.dataset.id, tekst: f.tekst.value.trim() })); });
+  // werkopdracht: de functie zet de aanvaardlink in het dossier en verstuurt de mail (of geeft de WhatsApp-link terug)
+  const werkopdracht = async (f, kanaal) => {
+    if (!f.lev.value) throw new Error('Kies een leverancier.');
+    if (!f.bericht.value.trim()) throw new Error('Schrijf wat de leverancier moet doen.');
+    const { data, error } = await sb.functions.invoke('werkopdracht', { body: { dossier_id: f.dataset.id, leverancier_id: f.lev.value, bericht: f.bericht.value, kanaal } });
+    if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); }
+    return data;
+  };
+  stuur('form.fwo', async (f) => { const uit = await werkopdracht(f, 'mail'); S.bericht = { soort: 'ok', tekst: `Werkopdracht gemaild naar ${uit.naar}.` }; });
+  doel.querySelectorAll('form.fwo [data-wa]').forEach((b) => { b.onclick = async () => {
+    const f = b.closest('form'), venster = window.open('', '_blank');   // venster meteen openen: na het wachten blokkeert de browser het
+    try { const uit = await werkopdracht(f, 'whatsapp'); if (venster) venster.location = uit.whatsapp; else location.href = uit.whatsapp; S.bericht = { soort: 'ok', tekst: `WhatsApp-bericht voor ${uit.naar} staat klaar. Verstuur het in WhatsApp.` }; }
+    catch (e) { if (venster) venster.close(); fout(e); }
+    opnieuw();
+  }; });
   bindTaken(doel, opnieuw);
   if (UIT.meldBind) UIT.meldBind(doel, opnieuw);
 };
