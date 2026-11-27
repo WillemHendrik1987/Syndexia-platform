@@ -126,6 +126,36 @@ details[open]>summary::before{transform:rotate(45deg)}
 @keyframes synpunt{0%,60%,100%{opacity:.25}30%{opacity:1}}
 #synform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--l);background:#fff}
 #synform button{padding:10px 14px}
+/* De Gmail-mailbox: drie kolommen (mappen, lijst, leesvenster). Op een smal scherm één kolom tegelijk. */
+main:has(#gm){max-width:1480px}
+.gmkop{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+.gmkop>div{margin-right:auto}
+#gmzoek{display:flex;gap:6px;flex:1 1 260px;max-width:460px}
+.gmvak{display:grid;grid-template-columns:200px minmax(250px,350px) minmax(0,1fr);height:calc(100vh - 250px);min-height:440px;background:var(--vlak);border:1px solid var(--l);border-radius:var(--r);overflow:hidden}
+.gmvak>*{overflow-y:auto;min-width:0}
+#gmlabels{background:#FAF8FB;border-right:1px solid var(--l);padding:8px 6px}
+.gml{display:flex;justify-content:space-between;gap:6px;width:100%;background:none;color:var(--t);font-weight:500;padding:7px 10px;border-radius:8px;text-align:left}
+.gml span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gml:hover{background:var(--bl)}.gml.aan{background:var(--bl);color:var(--bd);font-weight:600}
+.gml b{font-size:12px;color:var(--bd)}
+#gmlijst{border-right:1px solid var(--l)}
+.gmrij{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;width:100%;background:none;color:var(--t);font-weight:400;text-align:left;padding:10px 12px;border-radius:0;border-bottom:1px solid var(--l);border-left:3px solid transparent}
+.gmrij:hover{background:#FBF9FC}.gmrij.aan{background:var(--bl);border-left-color:var(--b)}
+.gmrij span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmtijd{font-size:12px;color:var(--g)}
+.gmond,.gmfrag{grid-column:1/-1}.gmfrag{font-size:13px;color:var(--g)}
+.gmrij.nieuw .gmvan,.gmrij.nieuw .gmond{font-weight:700}.gmrij.nieuw{border-left-color:var(--koper)}
+#gmlees{padding:16px 18px}
+.gmacties{display:flex;flex-wrap:wrap;gap:6px}.gmacties button{padding:7px 12px}
+.gmterug{display:none}
+.gmmappen{margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gmx{background:none;color:inherit;padding:0 2px;font-weight:700;line-height:1}.gmx:hover{background:none;color:var(--fout)}
+.gmbijlagen{display:flex;flex-wrap:wrap;gap:6px}
+#gmkader{width:100%;height:max(320px,calc(100vh - 560px));border:1px solid var(--l);border-radius:10px;background:#fff}
+.gmtekst{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;border:1px solid var(--l);border-radius:10px;padding:12px;margin:8px 0 0}
+@media (max-width:900px){.gmvak{display:block;height:auto;min-height:0;overflow:visible}.gmvak>*{overflow:visible}
+  #gmlabels{display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--l)}.gml{width:auto;flex:none;padding-left:10px!important}
+  #gmlijst{border-right:0}#gm.lezen #gmlabels,#gm.lezen #gmlijst{display:none}#gm:not(.lezen) #gmlees{display:none}.gmterug{display:inline-block}#gmkader{height:60vh}}
 @media (max-width:560px){main{padding:16px 12px 100px}h2{font-size:21px}.groet h2{font-size:23px}.groepen{display:flex}.groepen button{flex:1;padding:8px 6px}
   #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}#synknop::before{content:"Syn"}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
@@ -147,23 +177,24 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.27"></script>
-<script src="meer.js?v=0.27"></script>
-<script src="peppol.js?v=0.27"></script>
-<script src="docs.js?v=0.27"></script>
-<script src="ai.js?v=0.27"></script>
-<script src="mail.js?v=0.27"></script>
-<script src="portaal.js?v=0.27"></script>
-<script src="qr.js?v=0.27"></script>
-<script src="werk.js?v=0.27"></script>
-<script src="melding.js?v=0.27"></script>
-<script src="verkoop.js?v=0.27"></script>
-<script src="assistent.js?v=0.27"></script>
-<script src="migratie.js?v=0.27"></script>
-<script src="mailbox.js?v=0.27"></script>
-<script src="attesten.js?v=0.27"></script>
-<script src="betaal.js?v=0.27"></script>
-<script src="teken.js?v=0.27"></script>
-<script src="app.js?v=0.27"></script>
+<script src="beheer.js?v=0.28"></script>
+<script src="meer.js?v=0.28"></script>
+<script src="peppol.js?v=0.28"></script>
+<script src="docs.js?v=0.28"></script>
+<script src="ai.js?v=0.28"></script>
+<script src="mail.js?v=0.28"></script>
+<script src="portaal.js?v=0.28"></script>
+<script src="qr.js?v=0.28"></script>
+<script src="werk.js?v=0.28"></script>
+<script src="melding.js?v=0.28"></script>
+<script src="verkoop.js?v=0.28"></script>
+<script src="assistent.js?v=0.28"></script>
+<script src="migratie.js?v=0.28"></script>
+<script src="mailbox.js?v=0.28"></script>
+<script src="gmail.js?v=0.28"></script>
+<script src="attesten.js?v=0.28"></script>
+<script src="betaal.js?v=0.28"></script>
+<script src="teken.js?v=0.28"></script>
+<script src="app.js?v=0.28"></script>
 </body>
 </html>
