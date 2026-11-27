@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-title" content="Syndexia">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icoon-192.png">
+<link rel="apple-touch-icon" href="icoon-180.png">
 <title>Syndexia Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,8 +90,8 @@ tr.tot td{font-weight:600;border-top:2px solid var(--t)}
 /* De knoppen op het startscherm komen uit verschillende modules; hier vormen ze één rij. */
 .acties{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
 .acties>p{display:contents;margin:0}
-.acties>#taken-start{flex:1 0 100%;margin-top:6px}
-.acties>#taken-start .kaart{margin:0}
+/* Onder de knoppen: de blokken van het startscherm (open taken, sleutels buiten, attesten, nachtronde). */
+.blokken>div:empty{display:none}.blokken{min-width:0}
 .groet{margin:4px 0 14px}
 .groet h2{font-size:27px}
 .groet p{margin:4px 0 0;color:var(--g)}
@@ -249,7 +252,7 @@ header{padding-top:calc(10px + env(safe-area-inset-top));padding-left:max(18px,e
 main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
 #synknop{bottom:calc(20px + env(safe-area-inset-bottom))}
 @supports (height:100dvh){#synpaneel{height:min(560px,calc(100dvh - 130px))}.gmvak{height:calc(100dvh - 235px)}}
-@media (pointer:coarse){input,select,textarea,#gmedit{font-size:16px}
+@media (pointer:coarse),(max-width:700px){input,select,textarea,#gmedit{font-size:16px}
   button:not(.gmster):not(.gmx),.knop,select,input:not([type=checkbox]):not([type=radio]):not([type=file]){min-height:44px}
   button.stil{padding:9px 14px}.tabs button{padding:11px 14px}summary{padding-top:8px;padding-bottom:8px}summary::before{top:1.05em}
   input[type=checkbox],input[type=radio]{width:20px;height:20px;vertical-align:-4px}.gmvink{width:20px;height:20px}
@@ -258,10 +261,75 @@ main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env
   .groepen{display:flex}.groepen button{flex:1}}
 @media (max-width:560px){header{padding-bottom:8px;gap:8px}header h1{font-size:16px}header small{display:none}#wie small{display:none}
   .kaart{padding:14px}.cijfers{gap:12px}th,td{padding:8px}.tekenvlak{height:180px}
-  .acties .knop{flex:1 1 calc(50% - 8px);justify-content:center;text-align:center}
   #synpaneel{padding-bottom:env(safe-area-inset-bottom)}}
+/* ---- Gsm (tot 700px): tabellen worden kaartjes, navigatie zit onderaan bij de duim. ---- */
+html{-webkit-tap-highlight-color:transparent}a,button,summary,label,select{touch-action:manipulation}
+#gsmbalk,#gsmblad,#gsmachter{display:none}
+/* Een tabel met veel kolommen blijft een tabel: ze schuift in haar eigen vak en de eerste kolom blijft staan. */
+table.gbreed td:first-child,table.gbreed th:first-child{position:sticky;left:0;background:var(--vlak);z-index:1}
+@media (max-width:700px){
+  html.gsmvast,html.gsmvast body{overflow:hidden}
+  header{position:sticky;top:0;z-index:30}
+  main{padding:14px 12px 100px}
+  body.gsmbalk main{padding-bottom:calc(108px + env(safe-area-inset-bottom))}
+  body.gsmbalk #wie,body.gsmbalk #synknop{display:none}
+  h2{font-size:21px}.groet h2{font-size:24px}
+  /* Startscherm: de knoppen staan op één rij die je zijwaarts veegt. */
+  .acties{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -12px 14px;padding:2px 12px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .acties::-webkit-scrollbar{display:none}.acties .knop{flex:none;white-space:nowrap;border-radius:99px;scroll-snap-align:start;padding:9px 16px}
+  .cijfers div{min-width:0;flex:1 1 40%}
+  /* De tabbladen in een gebouw: de rij loopt tot tegen de rand en vervaagt waar er meer is. */
+  .tabs{margin-left:-12px;margin-right:-12px;padding:0 12px;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 28px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 12px,#000 calc(100% - 28px),transparent 100%)}
+  .groepen{display:flex;margin-top:12px}.groepen button{flex:1;padding:8px 4px}
+  /* Tabel als kaartjes: per rij eerst de titel, daaronder kolomnaam links en waarde rechts. */
+  .schuif:has(>table.gk){overflow-x:visible}
+  table.gk,table.gk>tbody{display:block;width:100%}
+  table.gk>thead{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+  table.gk>tbody>tr{display:flex;flex-wrap:wrap;align-items:flex-start;gap:0 10px;padding:11px 0;line-height:1.4;border-bottom:1px solid var(--l)}
+  table.gk>tbody>tr:last-child{border-bottom:0}
+  table.gk>tbody>tr>td,table.gk>tbody>tr>th{display:block;flex:1 1 calc(50% - 5px);padding:3px 0;border:0;white-space:normal;text-align:left;min-width:0;overflow-wrap:anywhere;font-size:14.5px;background:none}
+  table.gk>tbody>tr>td::before{content:attr(data-k);margin-right:7px;color:var(--g);font-size:12.5px;font-weight:400}
+  table.gk>tbody>tr>td[data-k=""]::before,table.gk>tbody>tr>td.gt::before{content:none}
+  table.gk>tbody>tr>td.gt{flex:1 1 100%;font-weight:600;font-size:15.5px;padding-bottom:2px}
+  table.gk>tbody>tr>td.gv~td.gt{flex:1 1 0}
+  table.gk>tbody>tr>td.gt .klein{display:block;font-weight:400;margin-top:1px}table.gk>tbody>tr>td.gt br{display:none}
+  table.gk>tbody>tr>td.gv{flex:none;align-self:flex-start;padding-top:1px}
+  table.gk>tbody>tr>td.gl{display:none}
+  table.gk>tbody>tr>td.n:not(.gt){white-space:nowrap;min-width:max-content;font-variant-numeric:tabular-nums}
+  table.gk>tbody>tr>td:has(input:not([type=checkbox]):not([type=radio]),select,textarea)::before{display:block;margin:0 0 3px}
+  table.gk>tbody>tr>td:has(input:not([type=checkbox]):not([type=radio]),select,textarea){flex-basis:100%}
+  table.gk>tbody>tr>td[data-k=""]:not(.gt):not(.gv){display:flex;flex:1 0 100%;justify-content:flex-end;flex-wrap:wrap;gap:6px;padding-top:6px}
+  table.gk>tbody>tr>td.gv~td.gt~td{margin-left:0}
+  table.gk>tbody>tr.tot{border-top:2px solid var(--t)}table.gk>tbody>tr.tot>td{border:0;font-weight:600}
+  table.gk>tbody>tr>td.leeg{display:block;text-align:left;padding:6px 0}
+  input.smal{width:110px}
+  /* De onderbalk: vijf plaatsen, Syn in het midden. */
+  #gsmbalk:not([hidden]){display:grid;grid-template-columns:repeat(5,1fr);align-items:end;position:fixed;left:0;right:0;bottom:0;z-index:38;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--l);padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}
+  #gsmbalk>a,#gsmbalk>button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:50px;padding:4px 2px;background:none;color:var(--g);font:600 11.5px/1.2 "Instrument Sans",system-ui,sans-serif;text-decoration:none;border-radius:12px}
+  #gsmbalk>a:active,#gsmbalk>button:active{background:var(--bl);transform:none}
+  #gsmbalk svg{width:24px;height:24px}
+  #gsmbalk .aan{color:var(--b)}#gsmbalk .aan::after{content:"";position:absolute;top:-7px;width:22px;height:3px;border-radius:0 0 3px 3px;background:var(--b)}
+  #gsmbalk #gsmsyn{width:60px;height:60px;min-height:60px;padding:10px;margin:-22px auto 0;border-radius:50%;background:var(--koper);box-shadow:0 8px 20px -8px rgba(43,22,34,.65),0 0 0 5px var(--bg)}
+  #gsmbalk #gsmsyn:active{background:#E6B658;transform:scale(.95)}#gsmbalk #gsmsyn svg{width:100%;height:100%}
+  #gsmmail{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:99px;background:var(--fout);color:#fff;font:600 11px/18px "Instrument Sans",sans-serif;text-align:center}
+  /* Het menublad schuift van onder over de pagina. */
+  #gsmachter:not([hidden]){display:block;position:fixed;inset:0;z-index:44;background:rgba(43,22,34,.45);animation:gsmin .16s}
+  #gsmblad:not([hidden]){display:flex;flex-direction:column;position:fixed;left:0;right:0;bottom:0;z-index:45;max-height:86dvh;background:var(--bg);border-radius:22px 22px 0 0;box-shadow:0 -18px 50px -20px rgba(43,22,34,.7);animation:gsmop .22s cubic-bezier(.2,.8,.2,1);padding-bottom:env(safe-area-inset-bottom)}
+  @keyframes gsmop{from{transform:translateY(40%);opacity:.4}}@keyframes gsmin{from{opacity:0}}
+  .gsmgreep{padding:10px 0 4px;display:grid;place-items:center;touch-action:none}.gsmgreep i{width:44px;height:5px;border-radius:99px;background:#CFC6D3}
+  .gsmkop{display:flex;align-items:center;justify-content:space-between;padding:2px 16px 8px}
+  .gsmrol{overflow-y:auto;overscroll-behavior:contain;padding:0 16px 18px;-webkit-overflow-scrolling:touch}
+  .gsmrol h3{margin:16px 0 8px}.gsmrol h3:first-child{margin-top:4px}.gsmrol h4{margin:10px 0 6px;font-size:13px;color:var(--g)}
+  .gsmtegels{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(140px,45%),1fr));gap:8px}
+  .gsmtegel{display:flex;align-items:center;min-height:48px;padding:8px 12px;background:var(--vlak);border:1px solid var(--l);border-radius:12px;color:var(--t);text-decoration:none;font-weight:500;line-height:1.25}
+  .gsmtegel.aan{background:var(--b);border-color:var(--b);color:#fff;font-weight:600}.gsmtegel:active{background:var(--bl)}
+  .gsmgebouw{display:flex;flex-direction:column;padding:11px 12px;margin:0 0 6px;background:var(--vlak);border:1px solid var(--l);border-left:5px solid var(--b);border-radius:12px;color:var(--t);text-decoration:none;font-weight:600}
+  .gsmgebouw.aan{background:var(--bl)}#gsmzoek{margin:0 0 8px}
+  .gsmvoet{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--l)}.gsmvoet span{min-width:0;overflow-wrap:anywhere}
+  #synpaneel{z-index:46}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
-@media print{header,#synknop,#synpaneel{display:none!important}body{background:#fff}}
+@media print{header,#synknop,#synpaneel,#gsmbalk,#gsmblad,#gsmachter{display:none!important}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -279,27 +347,28 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.35"></script>
-<script src="meer.js?v=0.35"></script>
-<script src="peppol.js?v=0.35"></script>
-<script src="docs.js?v=0.35"></script>
-<script src="ai.js?v=0.35"></script>
-<script src="mail.js?v=0.35"></script>
-<script src="portaal.js?v=0.35"></script>
-<script src="qr.js?v=0.35"></script>
-<script src="werk.js?v=0.35"></script>
-<script src="melding.js?v=0.35"></script>
-<script src="verkoop.js?v=0.35"></script>
-<script src="assistent.js?v=0.35"></script>
-<script src="migratie.js?v=0.35"></script>
-<script src="mailbox.js?v=0.35"></script>
-<script src="gmail.js?v=0.35"></script>
-<script src="attesten.js?v=0.35"></script>
-<script src="betaal.js?v=0.35"></script>
-<script src="teken.js?v=0.35"></script>
-<script src="sleutels.js?v=0.35"></script>
-<script src="mapkoppeling.js?v=0.35"></script>
-<script src="koppelingen.js?v=0.35"></script>
-<script src="app.js?v=0.35"></script>
+<script src="beheer.js?v=0.36"></script>
+<script src="meer.js?v=0.36"></script>
+<script src="peppol.js?v=0.36"></script>
+<script src="docs.js?v=0.36"></script>
+<script src="ai.js?v=0.36"></script>
+<script src="mail.js?v=0.36"></script>
+<script src="portaal.js?v=0.36"></script>
+<script src="qr.js?v=0.36"></script>
+<script src="werk.js?v=0.36"></script>
+<script src="melding.js?v=0.36"></script>
+<script src="verkoop.js?v=0.36"></script>
+<script src="assistent.js?v=0.36"></script>
+<script src="migratie.js?v=0.36"></script>
+<script src="mailbox.js?v=0.36"></script>
+<script src="gmail.js?v=0.36"></script>
+<script src="attesten.js?v=0.36"></script>
+<script src="betaal.js?v=0.36"></script>
+<script src="teken.js?v=0.36"></script>
+<script src="sleutels.js?v=0.36"></script>
+<script src="mapkoppeling.js?v=0.36"></script>
+<script src="koppelingen.js?v=0.36"></script>
+<script src="gsm.js?v=0.36"></script>
+<script src="app.js?v=0.36"></script>
 </body>
 </html>

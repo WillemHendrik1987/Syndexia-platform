@@ -156,7 +156,8 @@ async function schermVandaag() {
   };
   const uur = new Date().getHours(), groet = uur < 12 ? 'Goeiemorgen' : uur < 18 ? 'Goeiemiddag' : 'Goeienavond';
   toon(`<div class="groet"><h2>${groet}</h2><p>${esc(S.kantoor.naam)} beheert ${vmes.length} ${vmes.length === 1 ? 'gebouw' : 'gebouwen'}.</p></div>
-    <div class="acties">${UIT.vandaag.join('')}</div>
+    <div class="acties">${UIT.vandaag.filter((h) => h.startsWith('<p')).join('')}</div>
+    <div class="blokken">${UIT.vandaag.filter((h) => h && !h.startsWith('<p')).join('')}</div>
     <div class="vmes">${vmes.map(kaart).join('')}</div>${vmes.length ? '' : '<div class="kaart"><p class="leeg">Nog geen gebouw. Begin met "Nieuwe VME" of neem een gebouw over van een vorige syndicus.</p></div>'}`);
   (UIT.naVandaag ?? []).forEach((f) => f());   // extra blokken op het startscherm, bv. de open taken
 }
