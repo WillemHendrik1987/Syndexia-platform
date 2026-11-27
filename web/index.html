@@ -127,35 +127,62 @@ details[open]>summary::before{transform:rotate(45deg)}
 #synform{display:flex;gap:8px;padding:10px;border-top:1px solid var(--l);background:#fff}
 #synform button{padding:10px 14px}
 /* De Gmail-mailbox: drie kolommen (mappen, lijst, leesvenster). Op een smal scherm één kolom tegelijk. */
-main:has(#gm){max-width:1480px}
-.gmkop{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+main:has(#gm){max-width:1520px}
+.gmkop{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
 .gmkop>div{margin-right:auto}
-#gmzoek{display:flex;gap:6px;flex:1 1 260px;max-width:460px}
-.gmvak{display:grid;grid-template-columns:200px minmax(250px,350px) minmax(0,1fr);height:calc(100vh - 250px);min-height:440px;background:var(--vlak);border:1px solid var(--l);border-radius:var(--r);overflow:hidden}
+#gmzoek{display:flex;gap:6px;flex:1 1 260px;max-width:480px}
+#gmzoek input{border-radius:99px;padding-left:16px}
+.gmvak{display:grid;grid-template-columns:210px minmax(280px,370px) minmax(0,1fr);height:calc(100vh - 235px);min-height:460px;background:var(--vlak);border:1px solid var(--l);border-radius:var(--r);overflow:hidden;box-shadow:0 12px 30px -24px rgba(43,22,34,.5)}
 .gmvak>*{overflow-y:auto;min-width:0}
-#gmlabels{background:#FAF8FB;border-right:1px solid var(--l);padding:8px 6px}
-.gml{display:flex;justify-content:space-between;gap:6px;width:100%;background:none;color:var(--t);font-weight:500;padding:7px 10px;border-radius:8px;text-align:left}
+#gmlabels{background:#FAF8FB;border-right:1px solid var(--l);padding:10px 8px}
+.gml{display:flex;justify-content:space-between;gap:6px;width:100%;background:none;color:var(--t);font-weight:500;padding:8px 12px;border-radius:99px;text-align:left}
 .gml span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gml:hover{background:var(--bl)}.gml.aan{background:var(--bl);color:var(--bd);font-weight:600}
-.gml b{font-size:12px;color:var(--bd)}
+.gml:hover{background:var(--bl)}.gml.aan{background:var(--b);color:#fff;font-weight:600}
+.gml b{font-size:12px;color:var(--bd)}.gml.aan b{color:#fff}
+.gmtussen{margin:14px 12px 4px;font-size:12px;color:var(--g);font-weight:600}
 #gmlijst{border-right:1px solid var(--l)}
-.gmrij{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1px 8px;width:100%;background:none;color:var(--t);font-weight:400;text-align:left;padding:10px 12px;border-radius:0;border-bottom:1px solid var(--l);border-left:3px solid transparent}
+.gmrij{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:1px 10px;align-items:center;padding:11px 12px 11px 9px;border-bottom:1px solid var(--l);border-left:3px solid transparent;cursor:pointer}
 .gmrij:hover{background:#FBF9FC}.gmrij.aan{background:var(--bl);border-left-color:var(--b)}
 .gmrij span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmrond{grid-row:1/4;align-self:start;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
 .gmtijd{font-size:12px;color:var(--g)}
-.gmond,.gmfrag{grid-column:1/-1}.gmfrag{font-size:13px;color:var(--g)}
-.gmrij.nieuw .gmvan,.gmrij.nieuw .gmond{font-weight:700}.gmrij.nieuw{border-left-color:var(--koper)}
-#gmlees{padding:16px 18px}
-.gmacties{display:flex;flex-wrap:wrap;gap:6px}.gmacties button{padding:7px 12px}
+.gmfrag{grid-column:2/-1;font-size:13px;color:var(--g)}
+.gmster{background:none;color:var(--g);padding:0 2px;font-size:17px;line-height:1}.gmster:hover{background:none;color:var(--koper)}.gmster.aan{color:var(--koper)}
+.gmrij.nieuw .gmvan,.gmrij.nieuw .gmond{font-weight:700}.gmrij.nieuw{border-left-color:var(--koper);background:#FFFDF8}
+.gmplan{grid-template-columns:minmax(0,1fr) auto;cursor:default}.gmplan .gmond,.gmplan .gmfrag{grid-column:1/-1}.gmplan .gmfrag{white-space:normal}
+#gmlees{padding:16px 20px 96px}
+.gmacties{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.gmacties button{padding:7px 12px}
+.gmrek{flex:1}
 .gmterug{display:none}
-.gmmappen{margin:8px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.gmtitel{font-size:21px;margin:16px 0 12px}
+.gmwie{display:flex;gap:12px;align-items:center}.gmwie>div{flex:1;min-width:0;overflow-wrap:anywhere}.gmwanneer{flex:none;text-align:right}
+.gmgesprek{margin:12px 0 0;border:1px solid var(--l);border-radius:10px;padding:8px 10px}.gmgesprek summary{font-weight:600;font-size:14px}
+.gmg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 8px;width:100%;background:none;color:var(--t);font-weight:500;text-align:left;padding:6px 8px;border-radius:8px}.gmg:hover{background:var(--bl)}.gmg.aan{background:var(--bl)}.gmg .gmfrag{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmmappen{margin:10px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .gmx{background:none;color:inherit;padding:0 2px;font-weight:700;line-height:1}.gmx:hover{background:none;color:var(--fout)}
-.gmbijlagen{display:flex;flex-wrap:wrap;gap:6px}
-#gmkader{width:100%;height:max(320px,calc(100vh - 560px));border:1px solid var(--l);border-radius:10px;background:#fff}
+.gmbijlagen{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+#gmkader{width:100%;height:max(320px,calc(100vh - 600px));border:1px solid var(--l);border-radius:10px;background:#fff}
 .gmtekst{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;border:1px solid var(--l);border-radius:10px;padding:12px;margin:8px 0 0}
+.gmdossier{margin-top:16px;padding:14px;border-radius:12px;background:#FAF8FB;border:1px solid var(--l)}
+.gmkoppeling{margin:0 0 8px}
+.dmails{margin:8px 0 12px;padding:10px 12px;border-radius:10px;background:#FAF8FB;border:1px solid var(--l)}.dmails p{margin:6px 0 0}
+/* De opsteller */
+.gmveld{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--l)}
+.gmveld label{margin:0;flex:0 0 78px}
+.gmveld input{border:0;border-radius:0;padding:10px 0;box-shadow:none!important}
+.gmbalk{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:8px 0}.gmbalk button{padding:6px 10px}
+#gmedit{min-height:240px;max-height:55vh;overflow-y:auto;border:1px solid var(--l);border-radius:10px;padding:12px 14px;background:#fff;overflow-wrap:anywhere}
+#gmedit:focus{outline:0;border-color:var(--b);box-shadow:0 0 0 3px var(--bl)}
+#gmedit img{max-width:100%;height:auto;border-radius:4px}
+#gmedit blockquote{margin:0 0 0 .8ex;border-left:2px solid #ccc;padding-left:1ex;color:var(--g)}
+#gmform.sleep #gmedit{border:2px dashed var(--b);background:var(--bl)}
+.gmtip{margin:6px 0}
+.gmverzend{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+#gmlatervak{margin-top:10px;padding:12px;border-radius:12px;background:var(--koperl)}
 @media (max-width:900px){.gmvak{display:block;height:auto;min-height:0;overflow:visible}.gmvak>*{overflow:visible}
-  #gmlabels{display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--l)}.gml{width:auto;flex:none;padding-left:10px!important}
-  #gmlijst{border-right:0}#gm.lezen #gmlabels,#gm.lezen #gmlijst{display:none}#gm:not(.lezen) #gmlees{display:none}.gmterug{display:inline-block}#gmkader{height:60vh}}
+  #gmlabels{display:flex;gap:4px;overflow-x:auto;border-right:0;border-bottom:1px solid var(--l)}.gml{width:auto;flex:none;padding-left:12px!important}.gmtussen{display:none}
+  #gmlijst{border-right:0}#gm.lezen #gmlabels,#gm.lezen #gmlijst{display:none}#gm:not(.lezen) #gmlees{display:none}.gmterug{display:inline-block}#gmkader{height:60vh}#gmlees{padding:14px}
+  .gmwie{flex-wrap:wrap}.gmwanneer{flex:1 0 100%;text-align:left}.gmveld label{flex-basis:70px}}
 @media (max-width:560px){main{padding:16px 12px 100px}h2{font-size:21px}.groet h2{font-size:23px}.groepen{display:flex}.groepen button{flex:1;padding:8px 6px}
   #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}#synknop::before{content:"Syn"}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
@@ -177,24 +204,24 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.28"></script>
-<script src="meer.js?v=0.28"></script>
-<script src="peppol.js?v=0.28"></script>
-<script src="docs.js?v=0.28"></script>
-<script src="ai.js?v=0.28"></script>
-<script src="mail.js?v=0.28"></script>
-<script src="portaal.js?v=0.28"></script>
-<script src="qr.js?v=0.28"></script>
-<script src="werk.js?v=0.28"></script>
-<script src="melding.js?v=0.28"></script>
-<script src="verkoop.js?v=0.28"></script>
-<script src="assistent.js?v=0.28"></script>
-<script src="migratie.js?v=0.28"></script>
-<script src="mailbox.js?v=0.28"></script>
-<script src="gmail.js?v=0.28"></script>
-<script src="attesten.js?v=0.28"></script>
-<script src="betaal.js?v=0.28"></script>
-<script src="teken.js?v=0.28"></script>
-<script src="app.js?v=0.28"></script>
+<script src="beheer.js?v=0.29"></script>
+<script src="meer.js?v=0.29"></script>
+<script src="peppol.js?v=0.29"></script>
+<script src="docs.js?v=0.29"></script>
+<script src="ai.js?v=0.29"></script>
+<script src="mail.js?v=0.29"></script>
+<script src="portaal.js?v=0.29"></script>
+<script src="qr.js?v=0.29"></script>
+<script src="werk.js?v=0.29"></script>
+<script src="melding.js?v=0.29"></script>
+<script src="verkoop.js?v=0.29"></script>
+<script src="assistent.js?v=0.29"></script>
+<script src="migratie.js?v=0.29"></script>
+<script src="mailbox.js?v=0.29"></script>
+<script src="gmail.js?v=0.29"></script>
+<script src="attesten.js?v=0.29"></script>
+<script src="betaal.js?v=0.29"></script>
+<script src="teken.js?v=0.29"></script>
+<script src="app.js?v=0.29"></script>
 </body>
 </html>

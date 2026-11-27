@@ -31,7 +31,7 @@ UIT.tabs.push(['dossiers', 'Dossiers']);
 UIT.fn.dossiers = () => '<div id="tabinhoud"><p class="leeg">Laden…</p></div>';
 UIT.bind.dossiers = async () => {
   const v = S.vme, d = S.d, doel = document.getElementById('tabinhoud');
-  let dossiers, notities = [], taken, leden;
+  let dossiers, notities = [], taken, leden, mails = [];
   try {
     [dossiers, taken, leden] = await Promise.all([
       q(sb.from('dossier').select('id, nummer, titel, soort, status, omschrijving, kavel_id, leverancier_id, geopend_op, afgesloten_op, bron, categorie, dringend, melder_naam, melder_contact, melder_plaats, ai_samenvatting, gevraagd_aan, aanvaard_op').eq('vme_id', v.id).order('nummer', { ascending: false })),
@@ -39,6 +39,8 @@ UIT.bind.dossiers = async () => {
       werkLeden(),
     ]);
     if (dossiers.length) notities = await q(sb.from('dossier_notitie').select('dossier_id, tekst, auteur, aangemaakt_op').in('dossier_id', dossiers.map((x) => x.id)).order('aangemaakt_op'));
+    // Gesprekken uit de mailbox die aan een dossier hangen (alleen de verwijzing; de mail zelf staat in Gmail).
+    if (dossiers.length) { try { mails = await q(sb.from('dossier_mail').select('id, dossier_id, gmail_id, van, onderwerp, datum').in('dossier_id', dossiers.map((x) => x.id)).order('datum')); } catch (e) { mails = []; } }
   } catch (e) { doel.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; return; }
   if (!document.body.contains(doel)) return;
   const kavelOpt = d.kavels.map((k) => [k.id, k.kavelnummer]), levOpt = d.leveranciers.map((l) => [l.id, l.naam]), ledenOpt = leden.map((l) => [l.user_id, l.email]);
@@ -57,6 +59,7 @@ UIT.bind.dossiers = async () => {
           ${x.gevraagd_aan ? `<p class="klein">Vraag tot interventie verstuurd naar ${esc(d.leveranciers.find((l) => l.id === x.gevraagd_aan)?.naam ?? 'leverancier')}: ${x.aanvaard_op ? `<span class="pil ok">aangenomen op ${werkTijd(x.aanvaard_op)}</span>` : '<span class="pil warn">nog niet aangenomen</span>'}</p>` : ''}
           ${x.ai_samenvatting ? `<p class="klein"><b>Samenvatting AI:</b> ${esc(x.ai_samenvatting)}</p>` : ''}` : ''}
         ${x.omschrijving ? `<p style="white-space:pre-wrap">${esc(x.omschrijving)}</p>` : ''}
+        ${mails.some((m) => m.dossier_id === x.id) ? `<div class="dmails"><b>Mails</b>${mails.filter((m) => m.dossier_id === x.id).map((m) => `<p><a href="#/mailbox/mail/${esc(m.gmail_id)}">${esc(m.onderwerp || '(geen onderwerp)')}</a> <span class="klein">${esc((/^\s*"?([^"<]*?)"?\s*</.exec(m.van ?? '')?.[1] || m.van || '').trim())}${m.datum ? ` · ${dat(m.datum)}` : ''}</span> <button type="button" class="stil" data-maillos="${m.id}" title="Dit gesprek van het dossier ontkoppelen">Ontkoppelen</button></p>`).join('')}</div>` : ''}
         <form class="fds" data-id="${x.id}"><div class="rij">${veld('Status', kies('status', werkOpties(DOSSIER_STATUS, x.status)))}${veld('Soort', kies('soort', werkOpties(DOSSIER_SOORT, x.soort)))}${veld('Kavel', kies('kavel', werkOpties(kavelOpt, x.kavel_id, 'gemene delen')))}${veld('Leverancier', kies('lev', werkOpties(levOpt, x.leverancier_id, 'nog geen')))}</div>
           <p><button class="stil">Wijziging opslaan</button></p></form>
         ${x.status === 'afgesloten' ? '' : `<details><summary style="cursor:pointer;font-weight:600">Werkopdracht sturen naar een leverancier</summary>
@@ -73,6 +76,7 @@ UIT.bind.dossiers = async () => {
 
   const opnieuw = () => schermVme();
   doel.querySelectorAll('details.dossier').forEach((el) => { el.ontoggle = () => { if (el.open) S.dossierOpen = el.dataset.id; else if (S.dossierOpen === el.dataset.id) S.dossierOpen = null; }; });
+  doel.querySelectorAll('[data-maillos]').forEach((b) => { b.onclick = async () => { S.dossierOpen = b.closest('details.dossier')?.dataset.id ?? S.dossierOpen; try { await q(sb.from('dossier_mail').delete().eq('id', b.dataset.maillos)); S.bericht = { soort: 'ok', tekst: 'Het gesprek is ontkoppeld. De mail zelf blijft in de mailbox.' }; } catch (e) { fout(e); } opnieuw(); }; });
   const alle = document.getElementById('dalle'); if (alle) alle.onchange = () => { S.dossierAlle = alle.checked; opnieuw(); };
   const stuur = (selector, werk) => doel.querySelectorAll(selector).forEach((f) => { f.onsubmit = async (ev) => {
     ev.preventDefault(); if (f.dataset.id) S.dossierOpen = f.dataset.id;
