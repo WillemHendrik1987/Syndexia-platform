@@ -17,20 +17,29 @@ const SYN_FIGUUR = `<svg viewBox="0 0 64 64" width="100%" height="100%" aria-hid
     <circle cx="25" cy="32.5" r="1.8" fill="#fff"/><circle cx="42" cy="32.5" r="1.8" fill="#fff"/></g>
   <path d="M25 46q7 6 14 0" fill="none" stroke="#8B1A4A" stroke-width="3" stroke-linecap="round"/></svg>`;
 const SYN_TIPS = {
-  vme: ['Maak een taak: meterstanden opnemen tegen eind deze maand', 'Welke dossiers staan open?', 'Wie heeft nog provisies openstaan?', 'Open een dossier voor een lek in de garage'],
-  kantoor: ['Wat staat er vandaag te doen?', 'Welke taken staan nog open?', 'Welke gebouwen hebben openstaande provisies?', 'Hoe neem ik een gebouw over?'],
+  vme: ['Welke dossiers staan open?', 'Wie heeft nog provisies openstaan?', 'Open een dossier voor een lek in de garage en zet een mail klaar voor de loodgieter', 'Zoek de mails over dit gebouw van de voorbije week'],
+  kantoor: ['Wat staat er vandaag te doen?', 'Welke ongelezen mails zijn er en wat moet ik ermee?', 'Welke attesten vervallen binnenkort?', 'Welke gebouwen hebben openstaande provisies?'],
 };
 // Eén beurt in het gesprek. Bij Syn kunnen er twee dingen onder het antwoord staan:
 //   acties      wat hij zelf al uitgevoerd heeft (groen vinkje)
 //   voorstellen wat naar buiten gaat en dus eerst door de syndicus bevestigd moet worden
-const synBel = (b, nr) => `<div class="synrij ${b.role === 'user' ? 'ik' : 'syn'}"><div class="synbel">${esc(b.content)}${(b.acties ?? []).length ? `<ul class="synacties">${b.acties.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div></div>${(b.voorstellen ?? []).map((v, i) => `<div class="synvoorstel" data-beurt="${nr}" data-nr="${i}"><b>${esc(v.titel)}</b><span class="klein">${esc(v.uitleg)}</span><p>${esc(v.tekst)}</p>
-    ${v.stand === 'gedaan' ? `<span class="pil ok">verstuurd</span>` : v.stand === 'niet' ? '<span class="pil">niet verstuurd</span>' : `${v.fout ? `<div class="melding fout">${esc(v.fout)}</div>` : ''}<div class="synknoppen"><button type="button" data-synja>Bevestigen en mailen</button><button type="button" class="stil" data-synnee>Niet doen</button></div>`}</div>`).join('')}`;
+const synBel = (b, nr) => `<div class="synrij ${b.role === 'user' ? 'ik' : 'syn'}"><div class="synbel">${esc(b.content)}${(b.acties ?? []).length ? `<ul class="synacties">${b.acties.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}${(b.links ?? []).length ? `<div class="synlinks">${b.links.map((l) => `<a class="knop licht" href="${esc(/^#\/[A-Za-z0-9\/_-]*$/.test(l.hash) ? l.hash : '#/')}">${esc(l.tekst)}</a>`).join('')}</div>` : ''}</div></div>${(b.voorstellen ?? []).map((v, i) => `<div class="synvoorstel" data-beurt="${nr}" data-nr="${i}"><b>${esc(v.titel)}</b><span class="klein">${esc(v.uitleg)}</span><p>${esc(v.tekst)}</p>
+    ${v.stand === 'gedaan' ? `<span class="pil ok">${esc(v.klaar ?? 'uitgevoerd')}</span>` : v.stand === 'niet' ? '<span class="pil">niet uitgevoerd</span>' : `${v.fout ? `<div class="melding fout">${esc(v.fout)}</div>` : ''}<div class="synknoppen"><button type="button" data-synja>${esc(v.knop ?? 'Bevestigen en mailen')}</button><button type="button" class="stil" data-synnee>Niet doen</button></div>`}</div>`).join('')}`;
+// Een voorstel van Syn uitvoeren nadat de syndicus op Bevestigen klikte. Pas hier gaat er iets naar
+// buiten (een mail, een werkopdracht) of in de boekhouding (een kost).
+async function synVoerUit(v) {
+  const roep = async (functie, body) => { const { data, error } = await sb.functions.invoke(functie, { body });
+    if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); } return data; };
+  if (v.soort === 'mail') { const g = v.gegevens, u = await roep('gmail', { actie: 'verstuur', aan: g.aan, cc: g.cc, onderwerp: g.onderwerp, html: g.html, antwoordOp: g.antwoordOp, verstuurOp: g.verstuurOpLokaal ? new Date(g.verstuurOpLokaal).toISOString() : null }); v.klaar = u.gepland ? 'ingepland' : 'verstuurd'; }
+  else if (v.soort === 'kost') { await q(sb.rpc('boek_kost', v.gegevens)); v.klaar = 'geboekt'; if (S.vme) { try { await laadVme(S.vme.id); } catch (e) { /* het scherm ververst bij de volgende klik */ } } }
+  else { await roep('werkopdracht', { ...v.gegevens, kanaal: 'mail' }); v.klaar = 'verstuurd'; }
+}
 // Waar sta je? In een VME praat Syn over die VME, anders over het kantoor.
 const synPlek = () => (location.hash.startsWith('#/vme/') && S.vme ? { sleutel: S.vme.id, soort: 'vme', naam: S.vme.naam, extra: { vme_id: S.vme.id, boekjaar_id: S.bj?.id ?? null } } : { sleutel: 'kantoor', soort: 'kantoor', naam: S.kantoor?.naam ?? '', extra: {} });
 async function synVraag(extra, gesprek, tekst) {
   const { data, error } = await sb.functions.invoke('ai-assistent', { body: { ...extra, vraag: tekst, geschiedenis: gesprek } });
   if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); }
-  gesprek.push({ role: 'user', content: tekst }, { role: 'assistant', content: data.antwoord, acties: data.acties ?? [], voorstellen: data.voorstellen ?? [] });
+  gesprek.push({ role: 'user', content: tekst }, { role: 'assistant', content: data.antwoord, acties: data.acties ?? [], voorstellen: data.voorstellen ?? [], links: data.links ?? [] });
   return (data.acties ?? []).length;   // aantal uitgevoerde acties: dan moet het scherm erachter ververst worden
 }
 // Na een actie van Syn het scherm erachter opnieuw tekenen, zodat de nieuwe taak of het nieuwe dossier er meteen staat.
@@ -59,8 +68,7 @@ function synTeken() {
     if (nee) nee.onclick = () => { v.stand = 'niet'; synTeken(); };
     if (ja) ja.onclick = async () => { ja.disabled = true; ja.textContent = 'Bezig…';
       try {
-        const { data, error } = await sb.functions.invoke('werkopdracht', { body: { ...v.gegevens, kanaal: 'mail' } });
-        if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); }
+        await synVoerUit(v);
         v.stand = 'gedaan'; v.fout = null; synTeken(); synVervers();
       } catch (e) { v.fout = e.message; synTeken(); }
     }; });
@@ -108,8 +116,7 @@ UIT.portaalBind = (opnieuw) => {
     if (nee) nee.onclick = () => { v.stand = 'niet'; synTeken(); };
     if (ja) ja.onclick = async () => { ja.disabled = true; ja.textContent = 'Bezig…';
       try {
-        const { data, error } = await sb.functions.invoke('werkopdracht', { body: { ...v.gegevens, kanaal: 'mail' } });
-        if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); }
+        await synVoerUit(v);
         v.stand = 'gedaan'; v.fout = null; synTeken(); synVervers();
       } catch (e) { v.fout = e.message; synTeken(); }
     }; });
