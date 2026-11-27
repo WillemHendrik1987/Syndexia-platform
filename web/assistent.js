@@ -48,19 +48,28 @@ async function synVervers() { try { if (location.hash.startsWith('#/vme/') && S.
 function synTeken() {
   const paneel = document.getElementById('synpaneel'); if (!paneel || paneel.hidden) return;
   const plek = synPlek(), gesprek = ((S.gesprekken ??= {})[plek.sleutel] ??= []);
+  const concept = paneel.querySelector('#synform [name=vraag]')?.value ?? '';   // wat je aan het typen was, blijft staan als het paneel ververst
   paneel.innerHTML = `<div class="synkop"><span class="synkopfiguur">${SYN_FIGUUR}</span><div><b>Syn</b><br><span>${plek.soort === 'vme' ? `over ${esc(plek.naam)}` : 'over het hele kantoor'}</span></div>
       ${gesprek.length ? '<button type="button" class="synlicht" id="synnieuw">Opnieuw</button>' : ''}<button type="button" class="synlicht" id="syndicht" aria-label="Sluiten">✕</button></div>
     <div class="syngesprek" id="syngesprek">${gesprek.length ? gesprek.map(synBel).join('') : `<div class="synrij syn"><div class="synbel">Dag! Ik ben Syn. Zeg wat ik moet doen of vraag me iets over ${plek.soort === 'vme' ? 'dit gebouw' : 'je gebouwen'}. Ik maak taken, open dossiers, werk ze bij, voer attesten in, plan vergaderingen en zet werkopdrachten klaar. Wat naar buiten gaat, bevestig jij eerst.</div></div>
       <div class="syntips">${SYN_TIPS[plek.soort].map((t) => `<button type="button" class="syntip">${esc(t)}</button>`).join('')}</div>`}<div id="synfout"></div></div>
     <form id="synform"><input name="vraag" maxlength="2000" required autocomplete="off" placeholder="Zeg wat ik moet doen…" aria-label="Je vraag of opdracht aan Syn"><button aria-label="Versturen">➤</button></form>`;
   const vak = document.getElementById('syngesprek'), f = document.getElementById('synform'); vak.scrollTop = vak.scrollHeight;
+  f.vraag.value = concept;
+  // Een vraag die onderweg is, hoort bij het gesprek (gesprek.wacht): tekent het paneel zich intussen
+  // opnieuw (bv. omdat een bevestigde actie net klaar is), dan blijven de vraag en de puntjes staan.
+  const wachtend = () => { if (!gesprek.wacht || document.getElementById('syndenkt')) return;
+    document.getElementById('synfout').insertAdjacentHTML('beforebegin', `${synBel({ role: 'user', content: gesprek.wacht })}<div class="synrij syn" id="syndenkt"><div class="synbel synpuntjes"><i></i><i></i><i></i></div></div>`);
+    f.querySelector('button').disabled = true; vak.scrollTop = vak.scrollHeight; };
   const stel = async (tekst) => {
-    vak.insertAdjacentHTML('beforeend', `${synBel({ role: 'user', content: tekst })}<div class="synrij syn" id="syndenkt"><div class="synbel synpuntjes"><i></i><i></i><i></i></div></div>`); vak.scrollTop = vak.scrollHeight;
-    f.vraag.value = ''; f.querySelector('button').disabled = true;
-    try { const gedaan = await synVraag(plek.extra, gesprek, tekst); synTeken(); if (gedaan) synVervers(); }
-    catch (e) { document.getElementById('syndenkt')?.remove(); vak.lastElementChild?.matches('.synrij.ik') && vak.lastElementChild.remove(); f.querySelector('button').disabled = false; f.vraag.value = tekst;
-      document.getElementById('synfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; vak.scrollTop = vak.scrollHeight; }
+    if (gesprek.wacht) return;   // één vraag tegelijk
+    gesprek.wacht = tekst; f.vraag.value = ''; wachtend();
+    try { const gedaan = await synVraag(plek.extra, gesprek, tekst); gesprek.wacht = null; synTeken(); if (gedaan) synVervers(); }
+    catch (e) { gesprek.wacht = null; synTeken(); const veld = document.querySelector('#synform [name=vraag]'), uit = document.getElementById('synfout');
+      if (veld && !veld.value) veld.value = tekst;
+      if (uit) { uit.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; uit.parentElement.scrollTop = uit.parentElement.scrollHeight; } }
   };
+  wachtend();
   f.onsubmit = (ev) => { ev.preventDefault(); const t = f.vraag.value.trim(); if (t) stel(t); };
   // een voorstel bevestigen of weigeren
   paneel.querySelectorAll('.synvoorstel').forEach((el) => { const v = gesprek[Number(el.dataset.beurt)]?.voorstellen?.[Number(el.dataset.nr)]; if (!v) return;
@@ -74,7 +83,7 @@ function synTeken() {
     }; });
   paneel.querySelectorAll('.syntip').forEach((b) => { b.onclick = () => stel(b.textContent); });
   document.getElementById('syndicht').onclick = () => synOpen(false);
-  const nieuw = document.getElementById('synnieuw'); if (nieuw) nieuw.onclick = () => { gesprek.length = 0; synTeken(); };
+  const nieuw = document.getElementById('synnieuw'); if (nieuw) nieuw.onclick = () => { if (gesprek.wacht) return; gesprek.length = 0; synTeken(); };
   f.vraag.focus();
 }
 function synOpen(open) {
@@ -110,15 +119,5 @@ UIT.portaalBind = (opnieuw) => {
     catch (e) { knop.disabled = false; knop.textContent = 'Vragen'; document.getElementById('asfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; }
   };
   f.onsubmit = (ev) => { ev.preventDefault(); const t = f.vraag.value.trim(); if (t) stel(t); };
-  // een voorstel bevestigen of weigeren
-  paneel.querySelectorAll('.synvoorstel').forEach((el) => { const v = gesprek[Number(el.dataset.beurt)]?.voorstellen?.[Number(el.dataset.nr)]; if (!v) return;
-    const nee = el.querySelector('[data-synnee]'), ja = el.querySelector('[data-synja]');
-    if (nee) nee.onclick = () => { v.stand = 'niet'; synTeken(); };
-    if (ja) ja.onclick = async () => { ja.disabled = true; ja.textContent = 'Bezig…';
-      try {
-        await synVoerUit(v);
-        v.stand = 'gedaan'; v.fout = null; synTeken(); synVervers();
-      } catch (e) { v.fout = e.message; synTeken(); }
-    }; });
   document.querySelectorAll('.astip').forEach((b) => { b.onclick = () => stel(b.textContent); });
 };

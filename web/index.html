@@ -2,7 +2,13 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2B1622">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Syndexia">
+<meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
 <title>Syndexia Platform</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,7 +38,7 @@ main{max-width:1060px;margin:0 auto;padding:22px 16px 110px}
 a.kaart{display:block;color:inherit;text-decoration:none;border-left:6px solid var(--b);transition:transform .12s,box-shadow .12s}
 a.kaart:hover{transform:translateY(-2px);box-shadow:0 10px 24px -14px rgba(43,22,34,.55)}
 a.kaart h2{font-size:19px}
-.vmes{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+.vmes{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr));gap:14px}
 .vmes a.kaart{margin:0}
 .rij{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
 .rij>*{flex:1 1 150px}
@@ -191,6 +197,32 @@ main:has(#gm){max-width:1520px}
   .gmwie{flex-wrap:wrap}.gmwanneer{flex:1 0 100%;text-align:left}.gmveld label{flex-basis:70px}}
 @media (max-width:560px){main{padding:16px 12px 100px}h2{font-size:21px}.groet h2{font-size:23px}.groepen{display:flex}.groepen button{flex:1;padding:8px 6px}
   #synpaneel{right:0;left:0;bottom:0;width:100%;height:min(78vh,620px);border-radius:18px 18px 0 0}#synknop{right:14px;bottom:14px}#synknop.open{display:none}#synknop::before{content:"Syn"}}
+/* Sleutelafhaal en het tekenvlak */
+.sltekst{white-space:pre-wrap;overflow-wrap:anywhere;max-height:45vh;overflow:auto;border:1px solid var(--l);border-radius:10px;padding:12px;background:#FDFCFE;margin:10px 0}
+.slbeeld{height:64px;max-width:100%}.slvinger{overflow-wrap:anywhere}
+.slknoppen{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tekenvlak{display:block;width:100%;height:200px;border:2px dashed var(--l);border-radius:12px;background:#fff;touch-action:none;cursor:crosshair}
+/* Gsm en tablet. Drie dingen: niets mag breder zijn dan het scherm, alles wat je aantikt is groot
+   genoeg voor een vinger, en invulvelden zijn 16px zodat een iPhone niet inzoomt bij het typen. */
+html{-webkit-text-size-adjust:100%}
+img,canvas,video{max-width:100%}
+.kaart{overflow-wrap:break-word;min-width:0}
+.schuif{-webkit-overflow-scrolling:touch}
+header{padding-top:calc(10px + env(safe-area-inset-top));padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+#synknop{bottom:calc(20px + env(safe-area-inset-bottom))}
+@supports (height:100dvh){#synpaneel{height:min(560px,calc(100dvh - 130px))}.gmvak{height:calc(100dvh - 235px)}}
+@media (pointer:coarse){input,select,textarea,#gmedit{font-size:16px}
+  button:not(.gmster):not(.gmx),.knop,select,input:not([type=checkbox]):not([type=radio]):not([type=file]){min-height:44px}
+  button.stil{padding:9px 14px}.tabs button{padding:11px 14px}summary{padding-top:8px;padding-bottom:8px}summary::before{top:1.05em}
+  input[type=checkbox],input[type=radio]{width:20px;height:20px;vertical-align:-4px}.gmvink{width:20px;height:20px}
+  a.kaart:hover{transform:none;box-shadow:none}tbody tr:hover td{background:none}}
+@media (max-width:900px){.tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.tabs::-webkit-scrollbar{display:none}.tabs button{flex:none}
+  .groepen{display:flex}.groepen button{flex:1}}
+@media (max-width:560px){header{padding-bottom:8px;gap:8px}header h1{font-size:16px}header small{display:none}#wie small{display:none}
+  .kaart{padding:14px}.cijfers{gap:12px}th,td{padding:8px}.tekenvlak{height:180px}
+  .acties .knop{flex:1 1 calc(50% - 8px);justify-content:center;text-align:center}
+  #synpaneel{padding-bottom:env(safe-area-inset-bottom)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 @media print{header,#synknop,#synpaneel{display:none!important}body{background:#fff}}
 </style>
@@ -210,24 +242,25 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.31"></script>
-<script src="meer.js?v=0.31"></script>
-<script src="peppol.js?v=0.31"></script>
-<script src="docs.js?v=0.31"></script>
-<script src="ai.js?v=0.31"></script>
-<script src="mail.js?v=0.31"></script>
-<script src="portaal.js?v=0.31"></script>
-<script src="qr.js?v=0.31"></script>
-<script src="werk.js?v=0.31"></script>
-<script src="melding.js?v=0.31"></script>
-<script src="verkoop.js?v=0.31"></script>
-<script src="assistent.js?v=0.31"></script>
-<script src="migratie.js?v=0.31"></script>
-<script src="mailbox.js?v=0.31"></script>
-<script src="gmail.js?v=0.31"></script>
-<script src="attesten.js?v=0.31"></script>
-<script src="betaal.js?v=0.31"></script>
-<script src="teken.js?v=0.31"></script>
-<script src="app.js?v=0.31"></script>
+<script src="beheer.js?v=0.32"></script>
+<script src="meer.js?v=0.32"></script>
+<script src="peppol.js?v=0.32"></script>
+<script src="docs.js?v=0.32"></script>
+<script src="ai.js?v=0.32"></script>
+<script src="mail.js?v=0.32"></script>
+<script src="portaal.js?v=0.32"></script>
+<script src="qr.js?v=0.32"></script>
+<script src="werk.js?v=0.32"></script>
+<script src="melding.js?v=0.32"></script>
+<script src="verkoop.js?v=0.32"></script>
+<script src="assistent.js?v=0.32"></script>
+<script src="migratie.js?v=0.32"></script>
+<script src="mailbox.js?v=0.32"></script>
+<script src="gmail.js?v=0.32"></script>
+<script src="attesten.js?v=0.32"></script>
+<script src="betaal.js?v=0.32"></script>
+<script src="teken.js?v=0.32"></script>
+<script src="sleutels.js?v=0.32"></script>
+<script src="app.js?v=0.32"></script>
 </body>
 </html>

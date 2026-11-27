@@ -199,7 +199,7 @@ async function laadBoekjaar() {
 const TABS = [['overzicht', 'Overzicht'], ['kosten', 'Kosten'], ['provisies', 'Provisies'], ['afrekening', 'Afrekening'], ['balans', 'Balans']];
 TABS.push(...UIT.tabs);   // extra tabbladen uit beheer.js
 // De tabbladen staan in drie groepen; een tabblad dat in geen groep staat, komt bij Opvolging.
-const GROEPEN = [['Gebouw', ['overzicht', 'beheer', 'contacten', 'doc', 'attesten']], ['Boekhouding', ['kosten', 'provisies', 'afrekening', 'balans', 'bank', 'jaar', 'ai']], ['Opvolging', ['dossiers', 'av', 'tekenen', 'mail', 'verkoop', 'overdracht']]];
+const GROEPEN = [['Gebouw', ['overzicht', 'beheer', 'contacten', 'doc', 'attesten']], ['Boekhouding', ['kosten', 'provisies', 'afrekening', 'balans', 'bank', 'jaar', 'ai']], ['Opvolging', ['dossiers', 'sleutels', 'av', 'tekenen', 'mail', 'verkoop', 'overdracht']]];
 const groepVan = (tab) => (GROEPEN.find(([, t]) => t.includes(tab)) ?? GROEPEN[2])[0];
 function schermVme() {
   const v = S.vme, d = S.d, alle = TABS.filter(([k]) => { const f = { overzicht: 1, kosten: 1, provisies: 1, afrekening: 1, balans: 1, ...UIT.fn }; return f[k]; });
