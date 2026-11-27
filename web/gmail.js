@@ -33,7 +33,7 @@ const gmTijd = (iso) => { if (!iso) return ''; const d = new Date(iso), nu = new
 const gmGrootte = (b) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} kB`);
 
 let gmUitslag = null;
-const gmStaat = () => ({ label: 'INBOX', zoek: '', labels: [], mails: [], vervolg: null, open: null, gesprek: [], schrijf: null, toonSchrijf: false, beelden: false, vmes: null, beurt: 0, straks: null, gepland: [] });
+const gmStaat = () => ({ label: 'INBOX', zoek: '', labels: [], mails: [], vervolg: null, open: null, gesprek: [], schrijf: null, toonSchrijf: false, beelden: false, vmes: null, beurt: 0, straks: null, gepland: [], kies: new Set() });
 const gmLetters = (v) => { const n = gmNaam(v).replace(/[^\p{L}\p{N} ]/gu, ' ').trim().split(/\s+/); return ((n[0]?.[0] ?? '?') + (n.length > 1 ? n[n.length - 1][0] : '')).toUpperCase(); };
 const gmKleur = (v) => { let h = 0; for (const c of gmAdres(v).toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return `background:hsl(${h} 42% 90%);color:hsl(${h} 45% 28%)`; };
 const gmRond = (v) => `<span class="gmrond" style="${gmKleur(v)}" aria-hidden="true">${esc(gmLetters(v))}</span>`;
@@ -112,7 +112,13 @@ async function schermGmail(status) {
     const knop = (l) => `<button class="gml${l.id === st.label ? ' aan' : ''}" data-label="${esc(l.id)}" style="padding-left:${12 + l.diepte * 14}px" title="${esc(l.pad ?? l.naam)}"><span>${esc(l.naam)}</span>${l.ongelezen ? `<b>${Number(l.ongelezen)}</b>` : ''}</button>`;
     const vast = st.labels.filter((l) => l.soort === 'vast'), eigen = st.labels.filter((l) => l.soort === 'eigen');
     el('gmlabels').innerHTML = st.labels.length ? `${vast.map(knop).join('')}${knop({ id: 'UITGESTELD', naam: 'Uitgesteld', diepte: 0, ongelezen: wacht })}${eigen.length ? `<p class="gmtussen">Mappen</p>${eigen.map(knop).join('')}` : ''}` : '<p class="klein" style="padding:10px">Mappen laden…</p>';
-    el('gmlabels').querySelectorAll('[data-label]').forEach((b) => { b.onclick = () => { st.label = b.dataset.label; st.zoek = ''; el('gmzoek').zoek.value = ''; st.open = null; st.toonSchrijf = false; wissel(); tekenLabels(); tekenLees(); laadLijst(); }; });
+    el('gmlabels').querySelectorAll('[data-label]').forEach((b) => { b.onclick = () => { st.label = b.dataset.label; st.zoek = ''; el('gmzoek').zoek.value = ''; st.open = null; st.toonSchrijf = false; st.kies.clear(); wissel(); tekenLabels(); tekenLees(); laadLijst(); };
+      // Mails naar een map slepen: alleen mappen waar dat iets betekent lichten op.
+      const doel = b.dataset.label, mag = doel !== st.label && (['INBOX', 'STARRED', 'TRASH', 'SPAM'].includes(doel) || st.labels.some((l) => l.id === doel && l.soort === 'eigen'));
+      if (!mag) return;
+      b.ondragover = (ev) => { if ([...(ev.dataTransfer?.types ?? [])].includes('application/x-syndexia-mails')) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; b.classList.add('val'); } };
+      b.ondragleave = () => b.classList.remove('val');
+      b.ondrop = (ev) => { ev.preventDefault(); b.classList.remove('val'); let ids = []; try { ids = JSON.parse(ev.dataTransfer.getData('application/x-syndexia-mails')); } catch (e) { /* niets gesleept */ } if (ids.length) verplaats(ids, doel); }; });
   }
   async function laadLabels() { try { st.labels = (await gmail('labels')).labels; if (el('gmlabels')) tekenLabels(); } catch (e) { mis(e); } }
   async function laadGepland() {
@@ -130,15 +136,27 @@ async function schermGmail(status) {
       vak.querySelectorAll('[data-annuleer]').forEach((b) => { b.onclick = async () => { b.disabled = true; try { await gmail('annuleer', { id: b.dataset.annuleer }); zeg('ok', 'De mail wordt niet verstuurd.'); } catch (e) { mis(e); } laadGepland(); }; });
       return;
     }
-    const verzonden = st.label === 'SENT' || st.label === 'DRAFT';
-    vak.innerHTML = (st.mails.map((m) => { const wie = verzonden ? (m.aan || '').split(',')[0] : m.van, d = st.dossiers?.[m.draad];
-      return `<div class="gmrij${m.ongelezen ? ' nieuw' : ''}${st.open?.id === m.id ? ' aan' : ''}" data-mail="${esc(m.id)}" role="button" tabindex="0">${gmRond(wie)}
+    const verzonden = st.label === 'SENT' || st.label === 'DRAFT', concepten = st.label === 'DRAFT' && !st.zoek, eigenMappen = st.labels.filter((l) => l.soort === 'eigen');
+    [...st.kies].forEach((id) => { if (!st.mails.some((m) => m.id === id)) st.kies.delete(id); });
+    // Bovenaan: alles aanvinken, en zodra er iets aangevinkt is de knoppen voor al die mails samen.
+    const balk = st.mails.length && !concepten ? `<div class="gmbulk"><label title="Alles aanvinken"><input type="checkbox" id="gmalles"${st.kies.size && st.kies.size === st.mails.length ? ' checked' : ''}> <span class="klein">${st.kies.size ? `${st.kies.size} gekozen` : 'Alles'}</span></label>
+      ${st.kies.size ? `<button class="stil" data-bulk="archief">Archiveren</button><button class="stil" data-bulk="gelezen">Gelezen</button><button class="stil" data-bulk="ongelezen">Ongelezen</button><button class="stil" data-bulk="weg">Prullenbak</button>${eigenMappen.length ? `<select id="gmbulkmap" aria-label="Gekozen mails in een map zetten"><option value="">Naar map…</option>${eigenMappen.map((l) => `<option value="${esc(l.id)}">${esc(l.pad ?? l.naam)}</option>`).join('')}</select>` : ''}` : ''}</div>` : '';
+    vak.innerHTML = balk + (st.mails.map((m) => { const wie = verzonden ? (m.aan || '').split(',')[0] : m.van, d = st.dossiers?.[m.draad];
+      return `<div class="gmrij${m.ongelezen ? ' nieuw' : ''}${st.open?.id === m.id ? ' aan' : ''}${st.kies.has(m.id) ? ' gekozen' : ''}" data-mail="${esc(m.id)}" role="button" tabindex="0"${concepten ? '' : ' draggable="true"'}>${concepten ? '<span class="gmvink"></span>' : `<input type="checkbox" class="gmvink" data-kies="${esc(m.id)}" aria-label="Deze mail aanvinken"${st.kies.has(m.id) ? ' checked' : ''}>`}${gmRond(wie)}
         <span class="gmvan">${esc(verzonden ? `Aan: ${gmNaam(wie)}` : gmNaam(m.van))}</span><span class="gmtijd">${esc(gmTijd(m.datum))}</span>
         <span class="gmond">${esc(m.onderwerp || '(geen onderwerp)')}</span><button class="gmster${m.ster ? ' aan' : ''}" data-ster="${esc(m.id)}" title="${m.ster ? 'Ster weghalen' : 'Ster geven'}" aria-label="${m.ster ? 'Ster weghalen' : 'Ster geven'}">${m.ster ? '★' : '☆'}</button>
         <span class="gmfrag">${d ? `<span class="pil">dossier #${Number(d.nummer)}</span> ` : ''}${esc(m.fragment)}</span></div>`; }).join('')
       || (bezig ? '' : `<p class="leeg" style="padding:14px">${st.zoek ? 'Niets gevonden.' : 'Deze map is leeg.'}</p>`))
       + (bezig ? '<p class="klein" style="padding:14px">Laden…</p>' : st.vervolg ? '<p style="padding:10px"><button class="stil" id="gmmeer">Meer laden</button></p>' : '');
-    vak.querySelectorAll('[data-mail]').forEach((b) => { b.onclick = (ev) => { if (!ev.target.closest('[data-ster]')) openMail(b.dataset.mail); }; b.onkeydown = (ev) => { if (ev.key === 'Enter' && ev.target === b) openMail(b.dataset.mail); }; });
+    const open1 = (id) => (concepten ? openConcept(id) : openMail(id));
+    vak.querySelectorAll('[data-mail]').forEach((b) => { b.onclick = (ev) => { if (!ev.target.closest('[data-ster], [data-kies]')) open1(b.dataset.mail); }; b.onkeydown = (ev) => { if (ev.key === 'Enter' && ev.target === b) open1(b.dataset.mail); };
+      // Slepen: de aangevinkte mails als de gesleepte erbij hoort, anders alleen die ene.
+      b.ondragstart = (ev) => { const id = b.dataset.mail, ids = st.kies.has(id) ? [...st.kies] : [id]; ev.dataTransfer.setData('application/x-syndexia-mails', JSON.stringify(ids)); ev.dataTransfer.effectAllowed = 'move'; gm.classList.add('sleept'); };
+      b.ondragend = () => gm.classList.remove('sleept'); });
+    vak.querySelectorAll('[data-kies]').forEach((c) => { c.onchange = () => { if (c.checked) st.kies.add(c.dataset.kies); else st.kies.delete(c.dataset.kies); tekenLijst(false); }; });
+    if (el('gmalles')) el('gmalles').onchange = (ev) => { st.kies = new Set(ev.target.checked ? st.mails.map((m) => m.id) : []); tekenLijst(false); };
+    vak.querySelectorAll('[data-bulk]').forEach((b) => { b.onclick = () => bulk(b.dataset.bulk, b); });
+    if (el('gmbulkmap')) el('gmbulkmap').onchange = (ev) => ev.target.value && verplaats([...st.kies], ev.target.value);
     vak.querySelectorAll('[data-ster]').forEach((b) => { b.onclick = async () => { const m = st.mails.find((x) => x.id === b.dataset.ster); if (!m) return;
       try { await gmail('wijzig', m.ster ? { id: m.id, eraf: ['STARRED'] } : { id: m.id, erbij: ['STARRED'] }); m.ster = !m.ster; if (st.open?.id === m.id) st.open.ster = m.ster; tekenLijst(false); } catch (e) { mis(e); } }; });
     if (el('gmmeer')) el('gmmeer').onclick = () => laadLijst(true);
@@ -159,8 +177,68 @@ async function schermGmail(status) {
         if (beurt === st.beurt && el('gmlijst')) tekenLijst(false); } catch (e) { /* de lijst blijft bruikbaar zonder */ } }
     } catch (e) { if (beurt === st.beurt && el('gmlijst')) { tekenLijst(false); mis(e); } }
   }
+  // Een bewerking op alle aangevinkte mails samen.
+  async function bulk(wat, knop) {
+    const ids = [...st.kies]; if (!ids.length) return; knop.disabled = true;
+    try {
+      if (wat === 'weg') { const u = await gmail('bulkweg', { ids }); zeg('ok', `${u.aantal} mail(s) naar de prullenbak. Gmail bewaart ze daar nog 30 dagen.`); }
+      else { const w = { archief: { eraf: ['INBOX'] }, gelezen: { eraf: ['UNREAD'] }, ongelezen: { erbij: ['UNREAD'] } }[wat]; const u = await gmail('bulk', { ids, ...w });
+        zeg('ok', `${u.aantal} mail(s) ${wat === 'archief' ? 'gearchiveerd' : wat === 'gelezen' ? 'op gelezen gezet' : 'op ongelezen gezet'}.`); }
+      st.kies.clear(); if (ids.includes(st.open?.id)) { st.open = null; wissel(); tekenLees(); } laadLijst(); laadLabels();
+    } catch (e) { knop.disabled = false; mis(e); }
+  }
+  // Mails in een map zetten (gesleept of via "Naar map…"). Vanuit Postvak IN of een eigen map is dat
+  // verplaatsen: de mail gaat uit de map waar je staat. Vanuit een andere plek krijgt ze de map erbij.
+  async function verplaats(ids, doel) {
+    const naam = st.labels.find((l) => l.id === doel)?.naam ?? 'de map';
+    try {
+      if (doel === 'TRASH') { const u = await gmail('bulkweg', { ids }); zeg('ok', `${u.aantal} mail(s) naar de prullenbak.`); }
+      else { const hier = st.labels.find((l) => l.id === st.label), uit = !st.zoek && doel !== 'STARRED' && hier && hier.id !== doel && (hier.id === 'INBOX' || hier.soort === 'eigen') ? [hier.id] : [];
+        const u = await gmail('bulk', { ids, erbij: [doel], eraf: uit }); zeg('ok', `${u.aantal} mail(s) ${uit.length ? 'verplaatst naar' : 'gezet in'} ${naam}.`); }
+      st.kies.clear(); if (ids.includes(st.open?.id)) { st.open = null; wissel(); tekenLees(); } laadLijst(); laadLabels();
+    } catch (e) { mis(e); }
+  }
+  // Een concept uit de map Concepten gaat open in de opsteller, niet in het leesvenster.
+  async function openConcept(id) {
+    zeg(); if (st.schrijf?.vuil) await bewaarConcept();
+    try {
+      const c = await gmail('conceptlees', { id });
+      st.schrijf = { antwoordOp: null, draadKop: c.draadKop, conceptId: c.conceptId, doorstuurVan: c.bijlagen.length ? c.berichtId : null, zonderInline: true, meeBijlagen: c.bijlagen, nietMee: [], aan: c.aan, cc: c.cc, bcc: c.bcc, onderwerp: c.onderwerp, html: gmZuiver(c.html), bijlagen: [], citaat: '', titel: 'Concept', vuil: false, stand: 'Concept uit Gmail geopend.' };
+      st.open = null; st.toonSchrijf = true; wissel(); tekenLees();
+    } catch (e) { mis(e); laadLijst(); }
+  }
+  // Het concept in Gmail bewaren. Gebeurt vanzelf enkele seconden nadat je stopt met typen, en als je
+  // de opsteller verlaat. Loopt er al een bewaarbeurt, dan wacht de volgende daarop.
+  let bewaarBezig = null, bewaarKlok = null;
+  async function pakIn(s, ed, f) {
+    // Afbeeldingen in de tekst gaan apart mee; in de tekst blijft alleen een verwijzing (cid) staan.
+    const kopie = new DOMParser().parseFromString(ed ? ed.innerHTML : s.html, 'text/html').body, beelden = [];   // een los document: hier wordt niets geladen of uitgevoerd
+    kopie.querySelectorAll('img').forEach((img) => { const m = /^data:(image\/[a-z+.-]+);base64,(.+)$/i.exec(img.getAttribute('src') ?? ''); if (!m) return; const cid = `b${beelden.length + 1}@syndexia`;
+      beelden.push({ cid, soort: m[1], base64: m[2], naam: `afbeelding-${beelden.length + 1}.${m[1].split('/')[1].replace('jpeg', 'jpg')}` }); img.setAttribute('src', `cid:${cid}`); });
+    const bijlagen = []; for (const b of s.bijlagen) bijlagen.push({ naam: b.name, soort: b.type || 'application/octet-stream', base64: await gmBase64(b) });
+    return { aan: f ? f.aan.value : s.aan, cc: f ? f.cc.value : s.cc, bcc: f ? f.bcc.value : s.bcc, onderwerp: f ? f.onderwerp.value : s.onderwerp, html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px">${kopie.innerHTML}</div>`, beelden, bijlagen,
+      antwoordOp: s.antwoordOp, draadKop: s.draadKop ?? null, doorstuurVan: s.doorstuurVan, zonderInline: !!s.zonderInline, nietMee: s.nietMee ?? [], conceptId: s.conceptId ?? null };
+  }
+  function bewaarConcept() {
+    clearTimeout(bewaarKlok);
+    const s = st.schrijf; if (!s || !s.vuil) return bewaarBezig ?? Promise.resolve();
+    if (bewaarBezig) return bewaarBezig.then(() => (st.schrijf === s ? bewaarConcept() : null));
+    s.vuil = false; const stand = (t) => { s.stand = t; const v = el('gmconceptstand'); if (v && st.schrijf === s) v.textContent = t; };
+    stand('Concept bewaren…');
+    bewaarBezig = (async () => {
+      try {
+        const nieuw = s.bijlagen.length, uit = await gmail('concept', await pakIn(s, st.toonSchrijf && st.schrijf === s ? el('gmedit') : null, st.toonSchrijf && st.schrijf === s ? el('gmform') : null));
+        s.conceptId = uit.conceptId;
+        if (st.schrijf !== s) return;   // intussen weggegooid of verstuurd: wie dat deed ruimt het concept op
+        // Bijlagen staan nu bij Gmail: de browser hoeft ze niet opnieuw op te sturen.
+        if (nieuw || s.doorstuurVan) { s.bijlagen = s.bijlagen.slice(nieuw); s.meeBijlagen = uit.bijlagen; s.doorstuurVan = uit.bijlagen.length ? uit.berichtId : null; s.zonderInline = true; s.nietMee = []; if (s.tekenBij) s.tekenBij(); }
+        stand(`Concept bewaard in Gmail om ${new Date().toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' })}.`);
+      } catch (e) { s.vuil = true; stand('Het concept kon niet bewaard worden.'); if (e.koppelen) mis(e); }
+    })().finally(() => { bewaarBezig = null; });
+    return bewaarBezig;
+  }
   async function openMail(id) {
-    zeg(); st.toonSchrijf = false; st.beelden = false; st.open = { id, laden: true }; st.gesprek = []; st.gekoppeld = null; wissel(); tekenLees();
+    zeg(); if (st.schrijf?.vuil) bewaarConcept(); st.toonSchrijf = false; st.beelden = false; st.open = { id, laden: true }; st.gesprek = []; st.gekoppeld = null; wissel(); tekenLees();
     el('gmlijst').querySelectorAll('.gmrij').forEach((b) => b.classList.toggle('aan', b.dataset.mail === id));
     try {
       const { mail, gesprek } = await gmail('lees', { id });
@@ -279,7 +357,7 @@ async function schermGmail(status) {
   async function schrijf(op, soort) {
     zeg();
     const eigen = status.email.toLowerCase(), uniek = (l) => [...new Set(l.map(gmAdres).filter((a) => a && a.toLowerCase() !== eigen))];
-    const s = { antwoordOp: null, doorstuurVan: null, meeBijlagen: [], aan: '', cc: '', bcc: '', onderwerp: '', html: '', bijlagen: [], klaar: false };
+    const s = { antwoordOp: null, draadKop: null, conceptId: null, doorstuurVan: null, zonderInline: false, meeBijlagen: [], nietMee: [], aan: '', cc: '', bcc: '', onderwerp: '', html: '', bijlagen: [], vuil: false, stand: '' };
     if (op && soort === 'door') {
       s.onderwerp = /^\s*(fwd?|doorst)\s*:/i.test(op.onderwerp) ? op.onderwerp : `Fwd: ${op.onderwerp || ''}`.trim(); s.doorstuurVan = op.bijlagen.length ? op.id : null; s.meeBijlagen = op.bijlagen.map((b) => b.naam);
       s.citaat = `<br><div>---------- Doorgestuurd bericht ----------<br>Van: ${esc(op.van)}<br>Datum: ${esc(lang(op.datum))}<br>Onderwerp: ${esc(op.onderwerp)}<br>Aan: ${esc(op.aan)}<br><br>${citeer((op.tekst || '').slice(0, 30000))}</div>`;
@@ -291,14 +369,14 @@ async function schermGmail(status) {
     } else s.citaat = '';
     // De handtekening die in Gmail ingesteld staat komt onder het bericht (Gmail voegt ze via deze weg niet zelf toe).
     if (st.handtekening === undefined) { try { const h = await gmail('handtekening'); st.handtekening = h.html ? gmZuiver(h.html) : esc(h.tekst || '').replace(/\n/g, '<br>'); } catch (e) { st.handtekening = ''; } }
-    s.html = `<div><br></div>${st.handtekening ? `<br><div class="gmhand">${st.handtekening}</div>` : ''}${s.citaat}`; s.klaar = true;
+    s.html = `<div><br></div>${st.handtekening ? `<br><div class="gmhand">${st.handtekening}</div>` : ''}${s.citaat}`; s.titel = s.antwoordOp ? 'Antwoord' : s.citaat ? 'Doorsturen' : 'Nieuwe mail';
     st.schrijf = s; st.toonSchrijf = true; wissel(); tekenLees();
   }
   function tekenSchrijf(vak) {
     const s = st.schrijf, nu = new Date(), pad = (n) => String(n).padStart(2, '0'), lokaal = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     const morgen = new Date(nu); morgen.setDate(nu.getDate() + 1); morgen.setHours(8, 0, 0, 0);
     const maandag = new Date(nu); maandag.setDate(nu.getDate() + ((8 - nu.getDay()) % 7 || 7)); maandag.setHours(8, 0, 0, 0);
-    vak.innerHTML = `<form id="gmform"><div class="gmacties"><button type="button" class="stil gmterug" id="gmnaarlijst">← Lijst</button><h3 style="margin:0;flex:1">${s.antwoordOp ? 'Antwoord' : s.citaat ? 'Doorsturen' : 'Nieuwe mail'}</h3><button type="button" class="stil" id="gmstop">Weggooien</button></div>
+    vak.innerHTML = `<form id="gmform"><div class="gmacties"><button type="button" class="stil gmterug" id="gmnaarlijst">← Lijst</button><h3 style="margin:0;flex:1">${esc(s.titel)}</h3><button type="button" class="stil" id="gmstop">Weggooien</button></div>
       <div class="gmveld"><label for="gmaan">Aan</label><input id="gmaan" name="aan" value="${esc(s.aan)}" required placeholder="naam@voorbeeld.be, meerdere met een komma"><button type="button" class="stil" id="gmmeerv"${s.cc || s.bcc ? ' hidden' : ''}>Cc/Bcc</button></div>
       <div id="gmccvak"${s.cc || s.bcc ? '' : ' hidden'}><div class="gmveld"><label for="gmcc">Cc</label><input id="gmcc" name="cc" value="${esc(s.cc)}"></div><div class="gmveld"><label for="gmbcc">Bcc</label><input id="gmbcc" name="bcc" value="${esc(s.bcc)}"></div></div>
       <div class="gmveld"><label for="gmond">Onderwerp</label><input id="gmond" name="onderwerp" value="${esc(s.onderwerp)}" required maxlength="250"></div>
@@ -309,18 +387,21 @@ async function schermGmail(status) {
       <div id="gmedit" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Bericht"></div>
       <p class="klein gmtip">Sleep afbeeldingen of bestanden hierheen, of plak een schermafdruk met Ctrl+V. Afbeeldingen komen in de tekst, andere bestanden worden een bijlage.</p>
       <div id="gmbijlijst" class="gmbijlagen"></div>
-      <div class="gmverzend"><button id="gmstuur">Versturen</button><button type="button" class="stil" id="gmlater">Later versturen</button><span class="klein">Vanuit ${esc(status.email)}</span></div>
+      <div class="gmverzend"><button id="gmstuur">Versturen</button><button type="button" class="stil" id="gmlater">Later versturen</button><span class="klein">Vanuit ${esc(status.email)}</span><span class="klein" id="gmconceptstand" aria-live="polite">${esc(s.stand ?? '')}</span></div>
       <div id="gmlatervak" hidden><div class="rij" style="align-items:flex-end"><div style="flex:0 0 auto"><button type="button" class="stil" data-moment="${lokaal(morgen)}">Morgen 08:00</button></div><div style="flex:0 0 auto"><button type="button" class="stil" data-moment="${lokaal(maandag)}">Maandag 08:00</button></div>
         <div style="flex:1 1 200px"><label for="gmmoment">Of kies zelf</label><input type="datetime-local" id="gmmoment" min="${lokaal(new Date(nu.getTime() + 120000))}"></div><div style="flex:0 0 auto"><button type="button" id="gmplan">Inplannen</button></div></div>
         <p class="klein" style="margin:6px 0 0">De mail blijft tot dan bij "Uitgesteld" staan en kan je daar nog tegenhouden.</p></div></form>`;
     const f = el('gmform'), ed = el('gmedit');
     ed.innerHTML = s.html;   // eigen tekst van de opsteller, of de gezuiverde handtekening en het citaat (dat laatste is gewone tekst)
+    // "bewaar" houdt bij wat er staat; "gewijzigd" zet daarbovenop de klok om het concept in Gmail te bewaren.
     const bewaar = () => { s.aan = f.aan.value; s.cc = f.cc.value; s.bcc = f.bcc.value; s.onderwerp = f.onderwerp.value; s.html = ed.innerHTML; };
-    f.oninput = bewaar; ed.oninput = bewaar;
+    const gewijzigd = () => { bewaar(); s.vuil = true; clearTimeout(bewaarKlok); bewaarKlok = setTimeout(bewaarConcept, 4000); };
+    f.oninput = gewijzigd; ed.oninput = gewijzigd;
     const tekenBij = () => { el('gmbijlijst').innerHTML = [...s.bijlagen.map((b, i) => `<span class="pil">📎 ${esc(b.name)} <span class="klein">${gmGrootte(b.size)}</span> <button type="button" class="gmx" data-bijweg="${i}" aria-label="${esc(b.name)} weghalen">×</button></span>`),
-        ...(s.doorstuurVan ? [`<span class="pil">📎 gaat mee: ${esc(s.meeBijlagen.join(', '))} <button type="button" class="gmx" id="gmgeenmee" aria-label="Bijlagen van de oorspronkelijke mail niet meesturen">×</button></span>`] : [])].join(' ');
-      el('gmbijlijst').querySelectorAll('[data-bijweg]').forEach((b) => { b.onclick = () => { s.bijlagen.splice(Number(b.dataset.bijweg), 1); tekenBij(); }; });
-      if (el('gmgeenmee')) el('gmgeenmee').onclick = () => { s.doorstuurVan = null; tekenBij(); }; };
+        ...(s.doorstuurVan ? s.meeBijlagen.map((n, i) => ({ n, i })).filter((x) => !s.nietMee.includes(x.n)).map((x) => `<span class="pil">📎 ${esc(x.n)} <button type="button" class="gmx" data-nietmee="${x.i}" aria-label="${esc(x.n)} niet meesturen">×</button></span>`) : [])].join(' ');
+      el('gmbijlijst').querySelectorAll('[data-bijweg]').forEach((b) => { b.onclick = () => { s.bijlagen.splice(Number(b.dataset.bijweg), 1); tekenBij(); gewijzigd(); }; });
+      el('gmbijlijst').querySelectorAll('[data-nietmee]').forEach((b) => { b.onclick = () => { s.nietMee.push(s.meeBijlagen[Number(b.dataset.nietmee)]); tekenBij(); gewijzigd(); }; }); };
+    s.tekenBij = () => { if (st.schrijf === s && el('gmbijlijst')) tekenBij(); };
     tekenBij();
     const gewicht = () => s.bijlagen.reduce((t, b) => t + b.size, 0) + [...ed.querySelectorAll('img[src^="data:"]')].reduce((t, i) => t + i.src.length * 0.75, 0);
     // Bestanden toevoegen: afbeeldingen in de tekst (tenzij je ze uitdrukkelijk als bijlage kiest), de rest als bijlage.
@@ -333,7 +414,7 @@ async function schermGmail(status) {
           if (gewicht() > GM_MAX) { if (!alsBijlage && b.type.startsWith('image/')) ed.querySelector('img:last-of-type')?.remove(); else s.bijlagen.pop(); throw new Error(`${b.name || 'Het bestand'} past er niet meer bij: afbeeldingen en bijlagen samen mogen hoogstens ${gmGrootte(GM_MAX)} zijn.`); }
         } catch (e) { zeg('fout', e.message); }
       }
-      bewaar(); tekenBij();
+      tekenBij(); gewijzigd();
     }
     ed.onpaste = (ev) => { const bestanden = [...(ev.clipboardData?.files ?? [])];
       if (bestanden.length) { ev.preventDefault(); return voegToe(bestanden, false); }
@@ -346,10 +427,12 @@ async function schermGmail(status) {
     el('gmbijin').onchange = (ev) => { voegToe([...ev.target.files], true); ev.target.value = ''; };
     f.querySelectorAll('[data-opmaak]').forEach((b) => { b.onmousedown = (ev) => ev.preventDefault(); b.onclick = () => { ed.focus(); const c = b.dataset.opmaak;
       if (c === 'link') { const sel = String(getSelection()); const u = /^https?:\/\/\S+$/i.test(sel.trim()) ? sel.trim() : null; if (!u) return zeg('fout', 'Selecteer eerst een webadres (https://…) in de tekst; dat wordt dan een link.'); document.execCommand('createLink', false, u); }
-      else document.execCommand(c, false); bewaar(); }; });
+      else document.execCommand(c, false); gewijzigd(); }; });
     el('gmmeerv').onclick = () => { el('gmccvak').hidden = false; el('gmmeerv').hidden = true; f.cc.focus(); };
-    el('gmnaarlijst').onclick = () => { bewaar(); st.toonSchrijf = false; wissel(); tekenLees(); };
-    { let zeker = false; el('gmstop').onclick = () => { if (!zeker && ed.innerText.trim().length > 0 && s.html !== ed.dataset.begin) { zeker = true; el('gmstop').textContent = 'Zeker? Klik nog eens'; return; } st.schrijf = null; st.toonSchrijf = false; wissel(); tekenLees(); }; ed.dataset.begin = ed.innerHTML; }
+    el('gmnaarlijst').onclick = () => { bewaar(); if (s.vuil) bewaarConcept(); st.toonSchrijf = false; wissel(); tekenLees(); };
+    { let zeker = false; el('gmstop').onclick = () => { if (!zeker && (s.conceptId || (ed.innerText.trim().length > 0 && s.html !== ed.dataset.begin))) { zeker = true; el('gmstop').textContent = 'Zeker? Klik nog eens'; return; } clearTimeout(bewaarKlok); const weg = s.conceptId, lopend = bewaarBezig; st.schrijf = null; st.toonSchrijf = false; wissel(); tekenLees();
+        // Ook het concept in Gmail gaat weg (na een bewaarbeurt die nog liep).
+        Promise.resolve(lopend).then(() => { const cid = s.conceptId ?? weg; if (cid) return gmail('conceptweg', { conceptId: cid }); }).then(() => { if (st.label === 'DRAFT') laadLijst(); laadLabels(); }).catch(() => { /* het concept blijft dan in Gmail staan */ }); }; ed.dataset.begin = ed.innerHTML; }
     el('gmlater').onclick = () => { el('gmlatervak').hidden = !el('gmlatervak').hidden; };
     f.querySelectorAll('[data-moment]').forEach((b) => { b.onclick = () => { el('gmmoment').value = b.dataset.moment; }; });
     async function stuur(moment) {
@@ -357,16 +440,12 @@ async function schermGmail(status) {
       if (!f.reportValidity()) return;
       const knoppen = [el('gmstuur'), el('gmplan')]; knoppen.forEach((k) => { k.disabled = true; });
       try {
-        // Afbeeldingen in de tekst gaan apart mee; in de tekst blijft alleen een verwijzing (cid) staan.
-        const kopie = new DOMParser().parseFromString(ed.innerHTML, 'text/html').body, beelden = [];   // een los document: hier wordt niets geladen of uitgevoerd
-        kopie.querySelectorAll('img').forEach((img) => { const m = /^data:(image\/[a-z+.-]+);base64,(.+)$/i.exec(img.getAttribute('src') ?? ''); if (!m) return; const cid = `b${beelden.length + 1}@syndexia`;
-          beelden.push({ cid, soort: m[1], base64: m[2], naam: `afbeelding-${beelden.length + 1}.${m[1].split('/')[1].replace('jpeg', 'jpg')}` }); img.setAttribute('src', `cid:${cid}`); });
-        const bijlagen = []; for (const b of s.bijlagen) bijlagen.push({ naam: b.name, soort: b.type || 'application/octet-stream', base64: await gmBase64(b) });
-        const uit = await gmail('verstuur', { aan: f.aan.value, cc: f.cc.value, bcc: f.bcc.value, onderwerp: f.onderwerp.value, html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px">${kopie.innerHTML}</div>`, beelden, bijlagen,
-          antwoordOp: s.antwoordOp, doorstuurVan: s.doorstuurVan, verstuurOp: moment ? new Date(moment).toISOString() : null });
+        clearTimeout(bewaarKlok); s.vuil = false; if (bewaarBezig) await bewaarBezig;   // eerst de lopende bewaarbeurt: dan kennen we het concept dat mee weg moet
+        const uit = await gmail('verstuur', { ...(await pakIn(s, ed, f)), verstuurOp: moment ? new Date(moment).toISOString() : null });
+        s.verstuurd = true;
         st.schrijf = null; st.toonSchrijf = false; wissel(); tekenLees();
         zeg('ok', uit.gepland ? `Ingepland voor ${lang(uit.gepland)}, naar ${uit.aan.join(', ')}. Je vindt de mail bij "Uitgesteld".` : `Verstuurd naar ${uit.aan.join(', ')}.`);
-        if (uit.gepland) laadGepland(); else if (st.label === 'SENT') laadLijst();
+        if (uit.gepland) laadGepland(); else if (st.label === 'SENT' || st.label === 'DRAFT') laadLijst(); laadLabels();
       } catch (e) { knoppen.forEach((k) => { k.disabled = false; }); mis(e); }
     }
     f.onsubmit = (ev) => { ev.preventDefault(); stuur(null); };

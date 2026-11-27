@@ -141,12 +141,17 @@ main:has(#gm){max-width:1520px}
 .gml b{font-size:12px;color:var(--bd)}.gml.aan b{color:#fff}
 .gmtussen{margin:14px 12px 4px;font-size:12px;color:var(--g);font-weight:600}
 #gmlijst{border-right:1px solid var(--l)}
-.gmrij{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:1px 10px;align-items:center;padding:11px 12px 11px 9px;border-bottom:1px solid var(--l);border-left:3px solid transparent;cursor:pointer}
+.gmrij{display:grid;grid-template-columns:18px 36px minmax(0,1fr) auto;gap:1px 10px;align-items:center;padding:11px 12px 11px 9px;border-bottom:1px solid var(--l);border-left:3px solid transparent;cursor:pointer}
 .gmrij:hover{background:#FBF9FC}.gmrij.aan{background:var(--bl);border-left-color:var(--b)}
 .gmrij span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gmvink{grid-row:1/4;align-self:center;width:16px;height:16px;margin:0}
+.gmrij.gekozen{background:var(--koperl)}
+.gmbulk{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px 12px 8px 9px;border-bottom:1px solid var(--l);background:#FAF8FB;position:sticky;top:0;z-index:2}
+.gmbulk label{display:flex;align-items:center;gap:8px;margin:0 6px 0 3px}.gmbulk button{padding:5px 10px;font-size:13px}.gmbulk select{width:auto;padding:5px 8px;font-size:13px}
+#gm.sleept .gml{outline:1px dashed transparent}.gml.val{background:var(--koperl)!important;color:var(--t)!important;outline:2px dashed var(--koper)!important}
 .gmrond{grid-row:1/4;align-self:start;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
 .gmtijd{font-size:12px;color:var(--g)}
-.gmfrag{grid-column:2/-1;font-size:13px;color:var(--g)}
+.gmfrag{grid-column:3/-1;font-size:13px;color:var(--g)}
 .gmster{background:none;color:var(--g);padding:0 2px;font-size:17px;line-height:1}.gmster:hover{background:none;color:var(--koper)}.gmster.aan{color:var(--koper)}
 .gmrij.nieuw .gmvan,.gmrij.nieuw .gmond{font-weight:700}.gmrij.nieuw{border-left-color:var(--koper);background:#FFFDF8}
 .gmplan{grid-template-columns:minmax(0,1fr) auto;cursor:default}.gmplan .gmond,.gmplan .gmfrag{grid-column:1/-1}.gmplan .gmfrag{white-space:normal}
@@ -204,24 +209,24 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.29"></script>
-<script src="meer.js?v=0.29"></script>
-<script src="peppol.js?v=0.29"></script>
-<script src="docs.js?v=0.29"></script>
-<script src="ai.js?v=0.29"></script>
-<script src="mail.js?v=0.29"></script>
-<script src="portaal.js?v=0.29"></script>
-<script src="qr.js?v=0.29"></script>
-<script src="werk.js?v=0.29"></script>
-<script src="melding.js?v=0.29"></script>
-<script src="verkoop.js?v=0.29"></script>
-<script src="assistent.js?v=0.29"></script>
-<script src="migratie.js?v=0.29"></script>
-<script src="mailbox.js?v=0.29"></script>
-<script src="gmail.js?v=0.29"></script>
-<script src="attesten.js?v=0.29"></script>
-<script src="betaal.js?v=0.29"></script>
-<script src="teken.js?v=0.29"></script>
-<script src="app.js?v=0.29"></script>
+<script src="beheer.js?v=0.30"></script>
+<script src="meer.js?v=0.30"></script>
+<script src="peppol.js?v=0.30"></script>
+<script src="docs.js?v=0.30"></script>
+<script src="ai.js?v=0.30"></script>
+<script src="mail.js?v=0.30"></script>
+<script src="portaal.js?v=0.30"></script>
+<script src="qr.js?v=0.30"></script>
+<script src="werk.js?v=0.30"></script>
+<script src="melding.js?v=0.30"></script>
+<script src="verkoop.js?v=0.30"></script>
+<script src="assistent.js?v=0.30"></script>
+<script src="migratie.js?v=0.30"></script>
+<script src="mailbox.js?v=0.30"></script>
+<script src="gmail.js?v=0.30"></script>
+<script src="attesten.js?v=0.30"></script>
+<script src="betaal.js?v=0.30"></script>
+<script src="teken.js?v=0.30"></script>
+<script src="app.js?v=0.30"></script>
 </body>
 </html>
