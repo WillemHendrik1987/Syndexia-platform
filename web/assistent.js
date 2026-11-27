@@ -84,7 +84,7 @@ UIT.synToon = () => {
     document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !document.getElementById('synpaneel').hidden) synOpen(false); });
     window.addEventListener('hashchange', () => setTimeout(synTeken, 400));   // andere pagina: Syn praat over wat nu open staat
   }
-  const mag = !!(S.sessie && S.kantoor) && !(UIT.openbaar && /^#\/(meld|aanvaard)\//.test(location.hash));
+  const mag = !!(S.sessie && S.kantoor) && !(UIT.openbaar && /^#\/(meld|aanvaard|teken)\//.test(location.hash));
   knop.hidden = !mag; if (!mag) document.getElementById('synpaneel').hidden = true;
 };
 
