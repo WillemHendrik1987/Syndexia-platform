@@ -44,7 +44,10 @@ UIT.vandaag.push(`<p style="display:contents"><a class="knop" href="#/nieuw">+ N
 // ---- pagina: nieuwe VME -----------------------------------------------------------
 UIT.routes.nieuw = async () => {
   const jaar = new Date().getFullYear();
-  toon(`${terug}<div class="kaart"><h2>Nieuwe VME</h2>
+  toon(`${terug}<div class="kaart"><h2>Nieuw gebouw</h2>
+    <p>Heb je de map van het gebouw (van de vorige syndicus of van jezelf)? Laad ze op en het platform maakt het gebouw volledig aan: kavels, eigenaars, verdeelsleutels, leveranciers, attesten, dossiers en documenten.</p>
+    <p><a class="knop" href="#/overname">Map van het gebouw opladen</a></p></div>
+    <div class="kaart"><h2>Of zelf invullen</h2>
     <p class="klein">Maakt de VME aan met één gebouw, de standaardrekeningen, de dagboeken en een eerste boekjaar. Kavels, eigenaars en verdeelsleutels voeg je daarna toe onder Beheer.</p>
     <form id="fn"><div class="rij">${veld('Naam', inp('naam', 'required placeholder="VME Res. ..."'), '3 1 260px')}${veld('Ondernemingsnummer', inp('ond', 'placeholder="0123.456.789"'))}</div>
     <div class="rij">${veld('Straat en nummer', inp('straat'), '3 1 260px')}${veld('Postcode', inp('postcode'))}${veld('Gemeente', inp('gemeente'))}</div>

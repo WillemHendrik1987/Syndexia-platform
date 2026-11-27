@@ -36,9 +36,20 @@ async function synVoerUit(v) {
 }
 // Waar sta je? In een VME praat Syn over die VME, anders over het kantoor.
 const synPlek = () => (location.hash.startsWith('#/vme/') && S.vme ? { sleutel: S.vme.id, soort: 'vme', naam: S.vme.naam, extra: { vme_id: S.vme.id, boekjaar_id: S.bj?.id ?? null } } : { sleutel: 'kantoor', soort: 'kantoor', naam: S.kantoor?.naam ?? '', extra: {} });
-async function synVraag(extra, gesprek, tekst) {
-  const { data, error } = await sb.functions.invoke('ai-assistent', { body: { ...extra, vraag: tekst, geschiedenis: gesprek } });
-  if (error || data?.fout) { let uitleg = data?.fout ?? error.message; try { uitleg = (await error.context.json()).fout ?? uitleg; } catch (e) { /* geen uitleg */ } throw new Error(uitleg); }
+// Stelt de vraag aan Syn. Het antwoord komt als een stroom: eerst korte berichten over wat hij aan
+// het doen is ("stap"), op het einde het antwoord zelf. Zo zie je meteen dat hij bezig is en waarmee.
+async function synVraag(extra, gesprek, tekst, stap = () => {}) {
+  const { data: { session } } = await sb.auth.getSession();
+  let data = null, r;
+  try { r = await fetch(`${SB_URL}/functions/v1/ai-assistent?stroom=1`, { method: 'POST', headers: { 'content-type': 'application/json', apikey: SB_KEY, Authorization: `Bearer ${session?.access_token ?? SB_KEY}` }, body: JSON.stringify({ ...extra, vraag: tekst, geschiedenis: gesprek }) }); }
+  catch (e) { throw new Error('Syn is niet bereikbaar. Kijk je verbinding na en probeer opnieuw.'); }
+  if ((r.headers.get('content-type') ?? '').includes('ndjson') && r.body) {
+    const lezer = r.body.getReader(), dec = new TextDecoder(); let rest = '';
+    const lijn = (l) => { if (!l.trim()) return; try { const o = JSON.parse(l); if (o.stap) stap(o.stap); if (o.klaar) data = o.klaar; } catch (e) { /* een halve lijn: overslaan */ } };
+    for (;;) { const { done, value } = await lezer.read(); if (done) break; rest += dec.decode(value, { stream: true }); const lijnen = rest.split('\n'); rest = lijnen.pop(); lijnen.forEach(lijn); }
+    lijn(rest);
+  } else { try { data = await r.json(); } catch (e) { data = null; } }
+  if (!data || data.fout) throw new Error(data?.fout ?? `Syn gaf geen antwoord (${r.status}).`);
   gesprek.push({ role: 'user', content: tekst }, { role: 'assistant', content: data.antwoord, acties: data.acties ?? [], voorstellen: data.voorstellen ?? [], links: data.links ?? [] });
   return (data.acties ?? []).length;   // aantal uitgevoerde acties: dan moet het scherm erachter ververst worden
 }
@@ -59,12 +70,13 @@ function synTeken() {
   // Een vraag die onderweg is, hoort bij het gesprek (gesprek.wacht): tekent het paneel zich intussen
   // opnieuw (bv. omdat een bevestigde actie net klaar is), dan blijven de vraag en de puntjes staan.
   const wachtend = () => { if (!gesprek.wacht || document.getElementById('syndenkt')) return;
-    document.getElementById('synfout').insertAdjacentHTML('beforebegin', `${synBel({ role: 'user', content: gesprek.wacht })}<div class="synrij syn" id="syndenkt"><div class="synbel synpuntjes"><i></i><i></i><i></i></div></div>`);
+    document.getElementById('synfout').insertAdjacentHTML('beforebegin', `${synBel({ role: 'user', content: gesprek.wacht })}<div class="synrij syn" id="syndenkt"><div class="synbel"><div class="synpuntjes"><i></i><i></i><i></i></div><div class="synstap" id="synstap" aria-live="polite">${esc(gesprek.stap ?? '')}</div></div></div>`);
     f.querySelector('button').disabled = true; vak.scrollTop = vak.scrollHeight; };
   const stel = async (tekst) => {
     if (gesprek.wacht) return;   // één vraag tegelijk
     gesprek.wacht = tekst; f.vraag.value = ''; wachtend();
-    try { const gedaan = await synVraag(plek.extra, gesprek, tekst); gesprek.wacht = null; synTeken(); if (gedaan) synVervers(); }
+    gesprek.stap = '';
+    try { const gedaan = await synVraag(plek.extra, gesprek, tekst, (t) => { gesprek.stap = t; const el = document.getElementById('synstap'); if (el) el.textContent = t; }); gesprek.wacht = null; synTeken(); if (gedaan) synVervers(); }
     catch (e) { gesprek.wacht = null; synTeken(); const veld = document.querySelector('#synform [name=vraag]'), uit = document.getElementById('synfout');
       if (veld && !veld.value) veld.value = tekst;
       if (uit) { uit.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; uit.parentElement.scrollTop = uit.parentElement.scrollHeight; } }

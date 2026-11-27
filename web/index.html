@@ -288,6 +288,23 @@ main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env
 .tkfilters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 4px;padding:2px 0}.tkfilters::-webkit-scrollbar{display:none}
 .tkf{flex:none;padding:9px 14px;border-radius:99px;background:var(--vlak);border:1px solid var(--l);color:var(--t);font-weight:500;font-size:14px;min-height:0}
 .tkf.aan{background:var(--t);border-color:var(--t);color:#fff}.tkf.aan span{background:rgba(255,255,255,.2);color:#fff}
+/* ---- Zoek of vraag: de knop in de kop en het blad met resultaten. ---- */
+header{gap:10px}#zoekknop:not([hidden]){margin-left:auto;display:flex;align-items:center;gap:8px;min-height:38px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff;font-weight:500;font-size:14px}
+#zoekknop:hover{background:rgba(255,255,255,.2)}#zoekknop svg{width:18px;height:18px;flex:none}#zoekknop kbd{font:500 11px "Instrument Sans",sans-serif;opacity:.6;border:1px solid rgba(255,255,255,.35);border-radius:5px;padding:1px 5px}
+#zoekknop:not([hidden])~#wie,#zoekknop:not([hidden])+#wie{margin-left:0}
+#zoek:not([hidden]){position:fixed;inset:0;z-index:60;background:rgba(43,22,34,.5);display:flex;justify-content:center;align-items:flex-start;padding:9vh 14px 14px;animation:gsmin .14s}
+@keyframes gsmin{from{opacity:0}}
+.zkvak{width:min(640px,100%);max-height:78vh;display:flex;flex-direction:column;background:var(--vlak);border-radius:18px;box-shadow:0 30px 80px -30px rgba(43,22,34,.8);overflow:hidden}
+.zkrij{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--l)}.zkrij svg{width:22px;height:22px;color:var(--g);flex:none}
+#zoekveld{flex:1;min-width:0;border:0;background:none;font-size:17px;padding:6px 0;box-shadow:none;outline:0}
+#zoeklijst{list-style:none;margin:0;padding:6px;overflow-y:auto;overscroll-behavior:contain}
+#zoeklijst li[data-n]{display:grid;grid-template-columns:92px minmax(0,1fr);gap:0 10px;align-items:baseline;padding:9px 10px;border-radius:10px;cursor:pointer}
+#zoeklijst li[aria-selected=true]{background:var(--bl)}
+.zksoort{grid-row:span 2;font-size:12.5px;color:var(--g);font-weight:600}.zktitel{font-weight:500;overflow-wrap:anywhere}.zkbij{grid-column:2;font-size:13px;color:var(--g);overflow-wrap:anywhere}.zkbij:empty{display:none}
+#zoeklijst li.zksyn{border-top:1px solid var(--l);border-radius:0 0 10px 10px;margin-top:4px}.zksyn .zksoort{color:var(--warn)}
+.zkleeg{padding:16px 12px;color:var(--g);font-size:14.5px}
+.synstap{font-size:13px;color:var(--g);padding:0 13px 10px;margin-top:-6px}
+@media (max-width:700px){#zoekknop span,#zoekknop kbd{display:none}#zoekknop:not([hidden]){padding:8px;min-height:40px;min-width:40px;justify-content:center}#zoek:not([hidden]){padding:0;align-items:stretch}.zkvak{width:100%;max-height:none;border-radius:0}#zoeklijst li[data-n]{grid-template-columns:78px minmax(0,1fr);padding:11px 8px}}
 /* ---- Gsm (tot 700px): tabellen worden kaartjes, navigatie zit onderaan bij de duim. ---- */
 html{-webkit-tap-highlight-color:transparent}a,button,summary,label,select{touch-action:manipulation}
 #gsmbalk,#gsmblad,#gsmachter{display:none}
@@ -355,7 +372,7 @@ table.gbreed td:first-child,table.gbreed th:first-child{position:sticky;left:0;b
   #synpaneel{z-index:46}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
-@media print{header,#synknop,#synpaneel,#gsmbalk,#gsmblad,#gsmachter{display:none!important}body{background:#fff}}
+@media print{header,#synknop,#synpaneel,#gsmbalk,#gsmblad,#gsmachter,#zoek{display:none!important}body{background:#fff}}
 </style>
 </head>
 <body>
@@ -373,28 +390,29 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.37"></script>
-<script src="meer.js?v=0.37"></script>
-<script src="peppol.js?v=0.37"></script>
-<script src="docs.js?v=0.37"></script>
-<script src="ai.js?v=0.37"></script>
-<script src="mail.js?v=0.37"></script>
-<script src="portaal.js?v=0.37"></script>
-<script src="qr.js?v=0.37"></script>
-<script src="werk.js?v=0.37"></script>
-<script src="melding.js?v=0.37"></script>
-<script src="verkoop.js?v=0.37"></script>
-<script src="assistent.js?v=0.37"></script>
-<script src="migratie.js?v=0.37"></script>
-<script src="mailbox.js?v=0.37"></script>
-<script src="gmail.js?v=0.37"></script>
-<script src="attesten.js?v=0.37"></script>
-<script src="betaal.js?v=0.37"></script>
-<script src="teken.js?v=0.37"></script>
-<script src="sleutels.js?v=0.37"></script>
-<script src="mapkoppeling.js?v=0.37"></script>
-<script src="koppelingen.js?v=0.37"></script>
-<script src="gsm.js?v=0.37"></script>
-<script src="app.js?v=0.37"></script>
+<script src="beheer.js?v=0.38"></script>
+<script src="meer.js?v=0.38"></script>
+<script src="peppol.js?v=0.38"></script>
+<script src="docs.js?v=0.38"></script>
+<script src="ai.js?v=0.38"></script>
+<script src="mail.js?v=0.38"></script>
+<script src="portaal.js?v=0.38"></script>
+<script src="qr.js?v=0.38"></script>
+<script src="werk.js?v=0.38"></script>
+<script src="melding.js?v=0.38"></script>
+<script src="verkoop.js?v=0.38"></script>
+<script src="assistent.js?v=0.38"></script>
+<script src="migratie.js?v=0.38"></script>
+<script src="mailbox.js?v=0.38"></script>
+<script src="gmail.js?v=0.38"></script>
+<script src="attesten.js?v=0.38"></script>
+<script src="betaal.js?v=0.38"></script>
+<script src="teken.js?v=0.38"></script>
+<script src="sleutels.js?v=0.38"></script>
+<script src="mapkoppeling.js?v=0.38"></script>
+<script src="koppelingen.js?v=0.38"></script>
+<script src="gsm.js?v=0.38"></script>
+<script src="zoek.js?v=0.38"></script>
+<script src="app.js?v=0.38"></script>
 </body>
 </html>

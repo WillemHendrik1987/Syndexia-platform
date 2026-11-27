@@ -107,8 +107,9 @@ function migMaakMap(ruw) {
   const wortel = bestanden.every((b) => b.pad.includes('/')) ? bestanden[0].pad.split('/')[0] : '';
   const eenWortel = wortel && bestanden.every((b) => b.pad.startsWith(`${wortel}/`));
   for (const b of bestanden) { b.kort = eenWortel ? b.pad.slice(wortel.length + 1) : b.pad; b.kan = MIG_LEESBAAR.test(b.file.name) && b.file.size <= MIG_LEES_MAX; b.score = b.kan ? migScore(b.kort) : 0; b.lees = false; }
-  // de eerste keuze: de 20 documenten met de hoogste score, bij gelijke stand het recentste
-  [...bestanden].filter((b) => b.score > 0).sort((x, y) => y.score - x.score || y.file.lastModified - x.file.lastModified).slice(0, 20).forEach((b) => { b.lees = true; });
+  // De keuze gebeurt vanzelf: eerst wat er belangrijk uitziet (hoogste score), daarna de rest,
+  // telkens het recentste eerst, tot het maximum dat in één keer gelezen wordt.
+  [...bestanden].filter((b) => b.kan).sort((x, y) => y.score - x.score || y.file.lastModified - x.file.lastModified).slice(0, MIG_LEES_AANTAL).forEach((b) => { b.lees = true; });
   bestanden.sort((x, y) => x.kort.localeCompare(y.kort));
   return { naam: eenWortel ? wortel : '', bestanden, geheim: alle.length - bestanden.length };
 }
@@ -123,20 +124,19 @@ const migVerslagTekst = (vs, map) => [`Overname uit de map "${map?.naam || 'zond
     .filter(([, l]) => l?.length).map(([t, l]) => `${t}:\n${l.map((x) => `- ${x}`).join('\n')}`)].filter(Boolean).join('\n\n');
 
 // ---- pagina: overname -------------------------------------------------------------------
-UIT.vandaag.push('<p><a class="knop licht" href="#/overname">Gebouw overnemen</a></p>');
+UIT.vandaag.push('<p><a class="knop licht" href="#/overname">Gebouw uit een map</a></p>');
 UIT.routes.overname = async () => {
   const jaar = new Date().getFullYear(), st = (S.overname ??= { data: null });
   const d = st.data;
   const map = st.map, vs = st.verslag, teLezen = map ? map.bestanden.filter((b) => b.lees) : [];
   const blok = (titel, l, soort = '') => (l?.length ? `<h4>${titel}</h4><ul class="ovlijst ${soort}">${l.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
-  toon(`${terug}<div class="kaart"><h2>Gebouw overnemen</h2>
-    <h3 style="margin-top:14px">De volledige map van de vorige syndicus</h3>
-    <p class="klein">Sleep de map van de VME hierheen of kies ze. Het platform leest de belangrijkste documenten (basisakte, eigenaarslijst, verdeelsleutels, contracten, attesten, verslagen), maakt er een voorstel van en zegt wat ontbreekt. Er wordt niets aangemaakt tot je op Overnemen klikt. Bestanden met wachtwoorden of logins worden nooit meegenomen.</p>
+  toon(`${terug}<div class="kaart"><h2>Nieuw gebouw uit een map</h2>
+    <p class="klein">Sleep de volledige map van het gebouw hierheen. Het platform leest de documenten zelf (basisakte, eigenaarslijst, verdeelsleutels, contracten, attesten, verslagen, afrekening) en zet het hele gebouw klaar: kavels, eigenaars, verdeelsleutels, leveranciers, attesten, lopende dossiers, taken en alle documenten. Jij kijkt het voorstel na en klikt één keer op Gebouw aanmaken. Bestanden met wachtwoorden of logins worden nooit meegenomen.</p>
     <div id="ovdrop" class="ovdrop" tabindex="0"><b>Sleep hier de map van de VME</b><span class="klein">of</span>
       <span><label class="knop licht" for="ovmap">Map kiezen</label> <label class="knop licht" for="ovlos">Losse bestanden kiezen</label></span>
       <input type="file" id="ovmap" webkitdirectory multiple hidden><input type="file" id="ovlos" multiple hidden></div>
-    <div id="ovmapuit">${map && !d ? `<p><b>${esc(map.naam || 'Gekozen bestanden')}</b>: ${map.bestanden.length} bestanden${map.geheim ? `, ${map.geheim} met wachtwoorden of logins niet meegenomen` : ''}. Vink aan welke documenten uitgelezen worden (hoogstens ${MIG_LEES_AANTAL}). Alle bestanden komen na het overnemen bij Documenten, ook wat je hier niet aanvinkt.</p>
-      <div class="schuif ovkies"><table><thead><tr><th>Lezen</th><th>Bestand</th><th class="n">Grootte</th></tr></thead><tbody>${map.bestanden.map((b, n) => `<tr><td><input type="checkbox" data-lees="${n}"${b.lees ? ' checked' : ''}${b.kan ? '' : ' disabled'} aria-label="${esc(b.file.name)} laten uitlezen"></td><td style="white-space:normal;overflow-wrap:anywhere">${esc(b.kort)}${b.kan ? '' : ` <span class="klein">(${MIG_LEESBAAR.test(b.file.name) ? 'te groot om te lezen' : 'dit soort bestand wordt niet gelezen'})</span>`}${b.fout ? ` <span class="pil fout">${esc(b.fout)}</span>` : b.uittreksel ? ` <span class="pil ok">${esc(b.uittreksel.soort)}</span>` : ''}</td><td class="n">${migGrootte(b.file.size)}</td></tr>`).join('')}</tbody></table></div>
+    <div id="ovmapuit">${map && !d ? `<p><b>${esc(map.naam || 'Gekozen bestanden')}</b>: ${map.bestanden.length} bestanden${map.geheim ? `, ${map.geheim} met wachtwoorden of logins niet meegenomen` : ''}. ${teLezen.length} document(en) worden uitgelezen (hoogstens ${MIG_LEES_AANTAL}); alle bestanden komen daarna bij Documenten.</p>
+      <details${st.auto ? '' : ' open'}><summary>Welke documenten gelezen worden</summary><div class="schuif ovkies"><table><thead><tr><th>Lezen</th><th>Bestand</th><th class="n">Grootte</th></tr></thead><tbody>${map.bestanden.map((b, n) => `<tr><td><input type="checkbox" data-lees="${n}"${b.lees ? ' checked' : ''}${b.kan ? '' : ' disabled'} aria-label="${esc(b.file.name)} laten uitlezen"></td><td style="white-space:normal;overflow-wrap:anywhere">${esc(b.kort)}${b.kan ? '' : ` <span class="klein">(${MIG_LEESBAAR.test(b.file.name) ? 'te groot om te lezen' : 'dit soort bestand wordt niet gelezen'})</span>`}${b.fout ? ` <span class="pil fout">${esc(b.fout)}</span>` : b.uittreksel ? ` <span class="pil ok">${esc(b.uittreksel.soort)}</span>` : ''}</td><td class="n">${migGrootte(b.file.size)}</td></tr>`).join('')}</tbody></table></div></details>
       <p class="klein">De aangevinkte documenten gaan naar de AI-dienst (Claude van Anthropic) om gelezen te worden. Ze bevatten wellicht persoonsgegevens van eigenaars.</p>
       <p><button type="button" id="ovlees"${teLezen.length ? '' : ' disabled'}>${teLezen.length} document(en) laten uitlezen</button> <button type="button" class="stil" id="ovmapweg">Andere map kiezen</button></p><div id="ovvoortgang"></div>` : ''}</div>
     ${vs && d ? `<div class="ovverslag"><h3 style="margin-top:0">Wat de map zegt</h3><p>${esc(vs.samenvatting)}</p>
@@ -158,9 +158,13 @@ UIT.routes.overname = async () => {
           <label class="ovvink"><input type="checkbox" name="mdos" checked> Het verslag bewaren als dossier, met een taak per ontbrekend stuk</label>
           ${vs.leveranciers.length ? `<p style="margin-bottom:4px"><b>Leveranciers uit de documenten</b> <span class="klein">(wie al bestaat in je kantoor wordt overgeslagen)</span></p>${vs.leveranciers.map((l, n) => `<label class="ovvink"><input type="checkbox" name="mlev" value="${n}" checked> ${esc(l.naam)} <span class="klein">${esc([l.categorie, l.wat].filter(Boolean).join(' · '))}</span></label>`).join('')}` : ''}
           ${vs.attesten.length ? `<p style="margin-bottom:4px"><b>Attesten uit de documenten</b></p>${vs.attesten.map((a, n) => `<label class="ovvink"><input type="checkbox" name="matt" value="${n}" checked> ${esc(a.soort)} van ${dat(a.datum)}${a.geldig_tot ? `, geldig tot ${dat(a.geldig_tot)}` : ''} <span class="klein">${esc(a.uitvoerder ?? '')}</span></label>`).join('')}` : ''}` : ''}
-        <p><button>Overnemen</button> <button type="button" class="stil" id="ovweg">Annuleren</button></p></form>` : ''}</div>`);
+        ${vs?.dossiers?.length ? `<p style="margin-bottom:4px"><b>Lopende dossiers uit de documenten</b></p>${vs.dossiers.map((x, n) => `<label class="ovvink"><input type="checkbox" name="mzaak" value="${n}" checked> ${esc(x.titel)}${x.dringend ? ' <span class="pil fout">dringend</span>' : ''} <span class="klein">${esc(x.soort)}</span></label>`).join('')}` : ''}
+        ${vs?.taken?.length ? `<p style="margin-bottom:4px"><b>Taken uit de documenten</b></p>${vs.taken.map((x, n) => `<label class="ovvink"><input type="checkbox" name="mtaak" value="${n}" checked> ${esc(x.titel)}${x.tegen ? ` <span class="klein">tegen ${dat(x.tegen)}</span>` : ''}</label>`).join('')}` : ''}
+        ${vs?.vergadering && vs.vergadering.datum >= new Date().toISOString().slice(0, 10) ? `<label class="ovvink"><input type="checkbox" name="mav" checked> Algemene vergadering inplannen op ${dat(vs.vergadering.datum)}${vs.vergadering.tijdstip ? ` om ${esc(vs.vergadering.tijdstip)}` : ''} <span class="klein">${esc(vs.vergadering.plaats ?? '')}</span></label>` : ''}
+        ${vs?.beginbalans?.length ? `<h3>Beginbalans volgens de documenten</h3>${tabel(['Post', 'Datum', 'Bron', '#Bedrag'], vs.beginbalans.map((x) => `<tr>${cel(x.post)}${cel(x.datum ? dat(x.datum) : '')}${cel(x.bron ?? '')}${celN(eur(x.bedrag))}</tr>`))}<p class="klein"><span class="pil warn">let op</span> Deze bedragen worden niet geboekt. Ze komen in het overnamedossier, met een taak om de beginbalans na te kijken en te boeken.</p>` : ''}
+        <p><button>${vs ? 'Gebouw aanmaken' : 'Overnemen'}</button> ${map ? '<button type="button" class="stil" id="ovkiezen">Andere documenten laten lezen</button> ' : ''}<button type="button" class="stil" id="ovweg">Annuleren</button></p></form>` : ''}</div>`);
   // ---- de map: kiezen, slepen, laten uitlezen ----
-  const neemMap = (ruw) => { try { st.map = migMaakMap(ruw); st.data = null; st.verslag = null; UIT.routes.overname(); } catch (e) { document.getElementById('ovfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; } };
+  const neemMap = (ruw) => { try { st.map = migMaakMap(ruw); st.data = null; st.verslag = null; st.auto = st.map.bestanden.some((b) => b.lees); UIT.routes.overname(); } catch (e) { document.getElementById('ovfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; } };
   const drop = document.getElementById('ovdrop');
   for (const id of ['ovmap', 'ovlos']) document.getElementById(id).onchange = (ev) => { const b = [...ev.target.files]; if (b.length) neemMap(b.map((f) => ({ file: f, pad: f.webkitRelativePath || f.name }))); };
   drop.ondragover = (ev) => { ev.preventDefault(); drop.classList.add('val'); }; drop.ondragleave = () => drop.classList.remove('val');
@@ -195,6 +199,9 @@ UIT.routes.overname = async () => {
       UIT.routes.overname();
     };
   }
+  // Na het kiezen van een map begint het lezen vanzelf; de lijst aanpassen kan daarna nog.
+  if (map && !d && st.auto) { st.auto = false; document.getElementById('ovlees').click(); }
+  const anders = document.getElementById('ovkiezen'); if (anders) anders.onclick = () => { st.data = null; st.verslag = null; st.auto = false; UIT.routes.overname(); };
   const mis = (t) => { document.getElementById('ovfout').innerHTML = `<div class="melding fout">${esc(t)}</div>`; };
   document.getElementById('ovsjab').onclick = () => migDownload('voorbeeld-overname.csv', MIG_SJABLOON, 'text/csv');
   document.getElementById('ovin').onchange = async (ev) => {
@@ -230,6 +237,12 @@ UIT.routes.overname = async () => {
         const taken = vs.ontbreekt.slice(0, 20).map((t) => ({ kantoor_id: k, vme_id: id, dossier_id: dos.id, titel: `Opvragen bij de vorige syndicus: ${t}`.slice(0, 200) }));
         if (taken.length) await q(sb.from('taak').insert(taken));
         extra.push(`dossier met ${taken.length} taak/taken`); } catch (e) { extra.push(`dossier mislukt (${e.message})`); }
+      try { const zaken = gekozen('mzaak').map((n) => vs.dossiers?.[n]).filter(Boolean);
+        if (zaken.length) { stand('Lopende dossiers openen…'); await q(sb.from('dossier').insert(zaken.map((x) => ({ kantoor_id: k, vme_id: id, titel: x.titel, soort: x.soort, dringend: x.dringend, omschrijving: `${x.omschrijving ?? ''}\n\nOvergenomen uit de map van de vorige syndicus. Kijk na met de documenten zelf.`.trim() })))); extra.push(`${zaken.length} lopend(e) dossier(s) geopend`); } } catch (e) { extra.push(`dossiers mislukt (${e.message})`); }
+      try { const tk = gekozen('mtaak').map((n) => vs.taken?.[n]).filter(Boolean).map((x) => ({ kantoor_id: k, vme_id: id, titel: x.titel, vervaldatum: x.tegen, omschrijving: null }));   // elke rij dezelfde velden: dat eist de databank bij meerdere rijen tegelijk
+        if (vs.beginbalans?.length) tk.push({ kantoor_id: k, vme_id: id, titel: 'Beginbalans nakijken en boeken', vervaldatum: null, omschrijving: vs.beginbalans.map((x) => `${x.post}: ${eur(x.bedrag)}${x.datum ? ` op ${dat(x.datum)}` : ''}${x.bron ? ` (${x.bron})` : ''}`).join('; ').slice(0, 1000) });
+        if (tk.length) { stand('Taken klaarzetten…'); await q(sb.from('taak').insert(tk)); extra.push(`${tk.length} taak/taken klaargezet`); } } catch (e) { extra.push(`taken mislukt (${e.message})`); }
+      if (f.mav?.checked && vs.vergadering) try { stand('Vergadering inplannen…'); await q(sb.from('vergadering').insert({ kantoor_id: k, vme_id: id, datum: vs.vergadering.datum, tijdstip: vs.vergadering.tijdstip, plaats: vs.vergadering.plaats, soort: 'gewone', status: 'gepland' })); extra.push(`vergadering gepland op ${dat(vs.vergadering.datum)}`); } catch (e) { extra.push(`vergadering mislukt (${e.message})`); }
       if (map && f.mdoc?.checked) { let gelukt = 0, over = 0; const fouten = [];
         // de eerste submap bepaalt de map bij Documenten, net als bij "hele map inladen" daar
         const kiesMap = (b) => { const stukken = b.kort.split('/'), sub = stukken.length > 1 ? stukken[0].trim() : 'Algemeen', nr = (sub.match(/^(\d)\./) ?? [])[1]; return DOC_MAPPEN.find((m) => nr && m.startsWith(`${nr}.`)) ?? (DOC_MAPPEN.find((m) => m.toLowerCase() === sub.toLowerCase()) ?? sub.slice(0, 80)); };
@@ -244,7 +257,7 @@ UIT.routes.overname = async () => {
           } catch (e) { fouten.push(`${b.file.name}: ${e.message}`); if (fouten.length >= 10) break; } }
         extra.push(`${gelukt} document(en) ingeladen${over ? `, ${over} overgeslagen (te groot of dubbel)` : ''}${fouten.length ? `, ${fouten.length} mislukt${fouten.length >= 10 ? ' (gestopt na 10 fouten)' : ''}: ${fouten.slice(0, 2).join(' · ')}` : ''}`); }
     }
-    st.data = null; st.verslag = null; st.map = null; S.bericht = { soort: extra.some((x) => x.includes('mislukt')) ? 'fout' : 'ok', tekst: `${data.vme.naam} is overgenomen met ${d.kavels.length} kavels${extra.length ? `; ${extra.join('; ')}` : ''}. Kijk Beheer na en boek de beginbalans.` };
+    st.data = null; st.verslag = null; st.map = null; S.bericht = { soort: extra.some((x) => x.includes('mislukt')) ? 'fout' : 'ok', tekst: `${data.vme.naam} is aangemaakt met ${d.kavels.length} kavels${extra.length ? `; ${extra.join('; ')}` : ''}. Kijk Beheer na, boek de beginbalans en vul de bankrekeningen in.` };
     location.hash = `#/vme/${id}/beheer`;
   }, UIT.routes.overname);
 };
