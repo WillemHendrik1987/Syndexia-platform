@@ -202,6 +202,14 @@ main:has(#gm){max-width:1520px}
 .slbeeld{height:64px;max-width:100%}.slvinger{overflow-wrap:anywhere}
 .slknoppen{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .tekenvlak{display:block;width:100%;height:200px;border:2px dashed var(--l);border-radius:12px;background:#fff;touch-action:none;cursor:crosshair}
+/* Gebouw overnemen met een hele map */
+.ovdrop{display:flex;flex-direction:column;align-items:center;gap:8px;padding:26px 16px;border:2px dashed var(--l);border-radius:var(--r);background:#FAF8FB;text-align:center;transition:background .12s,border-color .12s}
+.ovdrop.val{border-color:var(--b);background:var(--bl)}.ovdrop b{font:700 17px "Bricolage Grotesque",sans-serif}
+.ovkies{max-height:340px;overflow-y:auto;border:1px solid var(--l);border-radius:10px;margin:8px 0}.ovkies th{position:sticky;top:0;background:#fff}
+.ovverslag{margin:16px 0;padding:16px;border-radius:var(--r);background:#FFFBF2;border:1px solid var(--koper)}
+.ovlijst{margin:4px 0 0;padding-left:20px}.ovlijst li{margin:3px 0}.ovlijst.warn li::marker{color:var(--warn)}.ovlijst.fout li::marker{color:var(--fout)}
+.ovvink{display:block;font-weight:400;color:var(--t);font-size:15px;margin:6px 0}
+.mkknoppen{display:flex;flex-wrap:wrap;gap:8px}#mkuit details{margin:6px 0}
 /* Gsm en tablet. Drie dingen: niets mag breder zijn dan het scherm, alles wat je aantikt is groot
    genoeg voor een vinger, en invulvelden zijn 16px zodat een iPhone niet inzoomt bij het typen. */
 html{-webkit-text-size-adjust:100%}
@@ -242,25 +250,26 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.32"></script>
-<script src="meer.js?v=0.32"></script>
-<script src="peppol.js?v=0.32"></script>
-<script src="docs.js?v=0.32"></script>
-<script src="ai.js?v=0.32"></script>
-<script src="mail.js?v=0.32"></script>
-<script src="portaal.js?v=0.32"></script>
-<script src="qr.js?v=0.32"></script>
-<script src="werk.js?v=0.32"></script>
-<script src="melding.js?v=0.32"></script>
-<script src="verkoop.js?v=0.32"></script>
-<script src="assistent.js?v=0.32"></script>
-<script src="migratie.js?v=0.32"></script>
-<script src="mailbox.js?v=0.32"></script>
-<script src="gmail.js?v=0.32"></script>
-<script src="attesten.js?v=0.32"></script>
-<script src="betaal.js?v=0.32"></script>
-<script src="teken.js?v=0.32"></script>
-<script src="sleutels.js?v=0.32"></script>
-<script src="app.js?v=0.32"></script>
+<script src="beheer.js?v=0.33"></script>
+<script src="meer.js?v=0.33"></script>
+<script src="peppol.js?v=0.33"></script>
+<script src="docs.js?v=0.33"></script>
+<script src="ai.js?v=0.33"></script>
+<script src="mail.js?v=0.33"></script>
+<script src="portaal.js?v=0.33"></script>
+<script src="qr.js?v=0.33"></script>
+<script src="werk.js?v=0.33"></script>
+<script src="melding.js?v=0.33"></script>
+<script src="verkoop.js?v=0.33"></script>
+<script src="assistent.js?v=0.33"></script>
+<script src="migratie.js?v=0.33"></script>
+<script src="mailbox.js?v=0.33"></script>
+<script src="gmail.js?v=0.33"></script>
+<script src="attesten.js?v=0.33"></script>
+<script src="betaal.js?v=0.33"></script>
+<script src="teken.js?v=0.33"></script>
+<script src="sleutels.js?v=0.33"></script>
+<script src="mapkoppeling.js?v=0.33"></script>
+<script src="app.js?v=0.33"></script>
 </body>
 </html>
