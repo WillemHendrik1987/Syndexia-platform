@@ -16,11 +16,44 @@ const werkTijd = (t) => new Date(t).toLocaleString('nl-BE', { dateStyle: 'short'
 const werkLaat = (taak) => !taak.klaar_op && taak.vervaldatum && taak.vervaldatum < new Date().toISOString().slice(0, 10);
 async function werkLeden() { return (S.leden ??= await q(sb.rpc('kantoor_leden'))); }
 const werkWie = (leden, id) => (id ? (leden.find((l) => l.user_id === id)?.email ?? 'onbekend').split('@')[0] : '');
-const taakRij = (t, leden, extra = '') => `<tr${t.klaar_op ? ' style="opacity:.55"' : ''}><td><input type="checkbox" data-taak="${t.id}" style="width:auto"${t.klaar_op ? ' checked' : ''} title="Klaar"></td>
-  <td>${esc(t.titel)}${t.omschrijving ? `<br><span class="klein">${esc(t.omschrijving)}</span>` : ''}</td>${extra}<td>${t.vervaldatum ? `${dat(t.vervaldatum)}${werkLaat(t) ? ' <span class="pil fout">te laat</span>' : ''}` : ''}</td>${cel(werkWie(leden, t.toegewezen_aan))}</tr>`;
+// ---- taken als lijst ------------------------------------------------------------------
+// Een taak is één rustige regel: rond vinkje, titel, en daaronder alleen wat ertoe doet
+// (wanneer, welk gebouw, welk dossier, voor wie). De toelichting staat op één regel en
+// klapt open als je erop tikt. Zo blijft een lange lijst overzichtelijk.
+const taakDag = (d) => Math.round((new Date(d + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 864e5);
+// Wanneer: in woorden als het dichtbij is, anders de datum. Geeft [tekst, soort] of null.
+function taakWanneer(t) {
+  if (!t.vervaldatum) return null;
+  const n = taakDag(t.vervaldatum), d = new Date(t.vervaldatum + 'T00:00:00');
+  if (t.klaar_op) return [dat(t.vervaldatum), ''];
+  if (n < 0) return [n === -1 ? '1 dag te laat' : `${-n} dagen te laat`, 'laat'];
+  if (n === 0) return ['vandaag', 'nu'];
+  if (n === 1) return ['morgen', 'nu'];
+  if (n <= 6) return [d.toLocaleDateString('nl-BE', { weekday: 'long' }), 'week'];
+  return [d.toLocaleDateString('nl-BE', { day: 'numeric', month: 'short', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }), ''];
+}
+// In welke groep een open taak valt.
+const TAAK_GROEPEN = [['laat', 'Te laat'], ['week', 'Deze week'], ['later', 'Later'], ['geen', 'Zonder datum']];
+const taakGroep = (t) => (!t.vervaldatum ? 'geen' : taakDag(t.vervaldatum) < 0 ? 'laat' : taakDag(t.vervaldatum) <= 6 ? 'week' : 'later');
+const taakItem = (t, leden, bij = {}) => {
+  const w = taakWanneer(t), wie = werkWie(leden, t.toegewezen_aan);
+  const meta = [w ? `<span class="tkw ${w[1]}" title="${esc(dat(t.vervaldatum))}">${esc(w[0])}</span>` : '', bij.vme ? `<span>${esc(bij.vme)}</span>` : '', bij.dossier ? `<span>${esc(bij.dossier)}</span>` : '', wie ? `<span>voor ${esc(wie)}</span>` : ''].filter(Boolean).join('');
+  return `<li class="tk${t.klaar_op ? ' klaar' : ''}"><input type="checkbox" data-taak="${t.id}"${t.klaar_op ? ' checked' : ''} aria-label="Klaar: ${esc(t.titel)}">
+    <div class="tkin"><div class="tkt">${esc(t.titel)}</div>${meta ? `<div class="tkm">${meta}</div>` : ''}${t.omschrijving ? `<div class="tko" role="button" tabindex="0" aria-expanded="false" title="Toon de hele toelichting">${esc(t.omschrijving)}</div>` : ''}</div></li>`;
+};
+// Een lijst taken; met groepen = true komen er tussenkopjes (Te laat, Deze week, ...).
+function taakLijst(taken, leden, bijVan = () => ({}), groepen = false) {
+  const stuk = (rij) => `<ul class="tkl">${rij.map((t) => taakItem(t, leden, bijVan(t))).join('')}</ul>`;
+  if (!groepen) return stuk(taken);
+  const open = taken.filter((t) => !t.klaar_op), klaar = taken.filter((t) => t.klaar_op);
+  return TAAK_GROEPEN.map(([k, n]) => { const rij = open.filter((t) => taakGroep(t) === k); return rij.length ? `<h4 class="tkg ${k}">${n} <span>${rij.length}</span></h4>${stuk(rij)}` : ''; }).join('')
+    + (klaar.length ? `<h4 class="tkg">Afgewerkt <span>${klaar.length}</span></h4>${stuk(klaar)}` : '');
+}
 // Vinkje bij een taak: klaar of terug open. "na" tekent het scherm opnieuw.
 function bindTaken(wortel, na) {
+  wortel.querySelectorAll('.tko').forEach((o) => { const wissel = () => o.setAttribute('aria-expanded', String(o.classList.toggle('open'))); o.onclick = wissel; o.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); wissel(); } }; });
   wortel.querySelectorAll('[data-taak]').forEach((vink) => { vink.onchange = async () => {
+    vink.closest('.tk')?.classList.toggle('klaar', vink.checked);   // meteen zichtbaar, de databank volgt
     try { await q(sb.from('taak').update({ klaar_op: vink.checked ? new Date().toISOString() : null }).eq('id', vink.dataset.taak)); } catch (e) { fout(e); }
     na();
   }; });
@@ -67,7 +100,7 @@ UIT.bind.dossiers = async () => {
             <label>Opdracht</label><textarea name="bericht" rows="3" required maxlength="3000" placeholder="Wat moet er gebeuren? Het adres van het gebouw en de link om aan te nemen komen er vanzelf bij." style="width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit"></textarea>
             <p><button>Opdracht mailen</button> <button type="button" class="stil" data-wa>Klaarzetten in WhatsApp</button></p>
             <p class="klein">De leverancier krijgt een link om de opdracht aan te nemen; dat zie je daarna hier in het dossier. Bij WhatsApp opent het gesprek met de tekst ingevuld en verstuur je zelf.</p></form></details>`}
-        <h4>Taken</h4>${tk.length ? tabel(['', 'Taak', 'Tegen', 'Voor'], tk.map((t) => taakRij(t, leden))) : '<p class="leeg">Nog geen taken.</p>'}
+        <h4>Taken</h4>${tk.length ? taakLijst(tk, leden) : '<p class="leeg">Nog geen taken.</p>'}
         <form class="fdt" data-id="${x.id}"><div class="rij">${veld('Nieuwe taak', inp('titel', 'required'), '3 1 220px')}${veld('Tegen', inp('verval', 'type="date"'))}${veld('Voor', kies('wie', werkOpties(ledenOpt, null, 'niemand')))}<div style="align-self:flex-end"><button class="stil">Toevoegen</button></div></div></form>
         <h4>Tijdlijn</h4>${nt.length ? nt.map((n) => `<p style="margin:6px 0"><span class="klein">${werkTijd(n.aangemaakt_op)} · ${esc(werkWie(leden, n.auteur))}</span><br><span style="white-space:pre-wrap">${esc(n.tekst)}</span></p>`).join('') : '<p class="leeg">Nog geen notities.</p>'}
         <form class="fdo" data-id="${x.id}"><textarea name="tekst" rows="2" required placeholder="Wat is er gebeurd of afgesproken?" style="width:100%;padding:9px 10px;border:1px solid var(--l);border-radius:8px;font:inherit"></textarea>
@@ -115,13 +148,18 @@ UIT.vandaag.push('<p><a class="knop licht" href="#/taken">Taken</a></p>', '<div 
   const doel = document.getElementById('taken-start'); if (!doel) return;
   try {
     const [taken, leden, vmes] = await Promise.all([
-      q(sb.from('taak').select('id, vme_id, titel, omschrijving, vervaldatum, toegewezen_aan, klaar_op').is('klaar_op', null).order('vervaldatum').limit(8)),
+      q(sb.from('taak').select('id, vme_id, titel, omschrijving, vervaldatum, toegewezen_aan, klaar_op').is('klaar_op', null).order('vervaldatum').limit(500)),
       werkLeden(), q(sb.from('vme').select('id, naam')),
     ]);
     if (!document.body.contains(doel)) return;
     const naam = Object.fromEntries(vmes.map((x) => [x.id, x.naam]));
-    doel.innerHTML = `<div class="kaart"><h3 style="margin-top:0">Open taken <a href="#/taken" class="klein" style="font-weight:400">alle taken en nieuwe taak →</a></h3>
-      ${taken.length ? tabel(['', 'Taak', 'VME', 'Tegen', 'Voor'], taken.map((t) => taakRij(t, leden, cel(naam[t.vme_id] ?? '')))) : '<p class="leeg">Geen open taken.</p>'}</div>`;
+    // Het startscherm toont alleen de vijf dringendste; de rest staat één tik verder.
+    const TOON = 5, tel = (k) => taken.filter((t) => taakGroep(t) === k).length, laat = tel('laat'), week = tel('week');
+    const stand = [laat ? `<b class="tkw laat">${laat} te laat</b>` : '', week ? `${week} deze week` : ''].filter(Boolean).join(' · ') || (taken.length ? 'niets dringends' : '');
+    doel.innerHTML = `<div class="kaart tkkaart"><div class="tkkop"><h3>Open taken${taken.length ? ` <span class="tkn">${taken.length}</span>` : ''}</h3><a class="knop licht tkplus" href="#/taken" aria-label="Nieuwe taak">+ Taak</a></div>
+      ${stand ? `<p class="klein tkstand">${stand}</p>` : ''}
+      ${taken.length ? taakLijst(taken.slice(0, TOON), leden, (t) => ({ vme: naam[t.vme_id] })) : '<p class="leeg">Geen open taken.</p>'}
+      ${taken.length > TOON ? `<p class="tkalle"><a href="#/taken">Alle ${taken.length} taken bekijken</a></p>` : ''}</div>`;
     bindTaken(doel, () => schermVandaag());
   } catch (e) { doel.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; }
 });
@@ -133,13 +171,20 @@ UIT.routes.taken = async () => {
     werkLeden(), q(sb.from('vme').select('id, naam').order('naam')), q(sb.from('dossier').select('id, nummer, titel')),
   ]);
   const naam = Object.fromEntries(vmes.map((x) => [x.id, x.naam])), dos = Object.fromEntries(dossiers.map((x) => [x.id, `#${x.nummer} ${x.titel}`]));
-  const lijst = taken.filter((t) => S.takenAlle || !t.klaar_op), nKlaar = taken.filter((t) => t.klaar_op).length;
-  toon(`${terug}<div class="kaart"><h2>Taken</h2>
-    ${lijst.length ? tabel(['', 'Taak', 'VME', 'Dossier', 'Tegen', 'Voor'], lijst.map((t) => taakRij(t, leden, cel(naam[t.vme_id] ?? '') + cel(dos[t.dossier_id] ?? '')))) : '<p class="leeg">Geen open taken.</p>'}
-    ${nKlaar ? `<p><label style="display:inline"><input type="checkbox" id="talle" style="width:auto"${S.takenAlle ? ' checked' : ''}> Ook de ${nKlaar} afgewerkte taak/taken tonen</label></p>` : ''}
-    <h3>Nieuwe taak</h3>
-    <form id="ftn"><div class="rij">${veld('Taak', inp('titel', 'required'), '3 1 240px')}${veld('VME', kies('vme', werkOpties(vmes.map((x) => [x.id, x.naam]), null, 'geen')))}${veld('Tegen', inp('verval', 'type="date"'))}${veld('Voor', kies('wie', werkOpties(leden.map((l) => [l.user_id, l.email]), S.sessie.user.id, 'niemand')))}</div>
-      <label>Toelichting</label><input name="omschrijving"><p><button>Taak toevoegen</button></p></form></div>`);
+  const open = taken.filter((t) => !t.klaar_op), nKlaar = taken.length - open.length, ik = S.sessie.user.id;
+  // Filters bovenaan: één tik om te zien wat te laat is, wat deze week moet of wat van jou is.
+  const FILTERS = [['alle', 'Alle', () => true], ['laat', 'Te laat', (t) => taakGroep(t) === 'laat'], ['week', 'Deze week', (t) => taakGroep(t) === 'week'], ['mij', 'Van mij', (t) => t.toegewezen_aan === ik]];
+  const gekozen = FILTERS.find(([k]) => k === S.takenFilter) ?? FILTERS[0];
+  const lijst = [...open.filter(gekozen[2]), ...(S.takenAlle ? taken.filter((t) => t.klaar_op) : [])];
+  toon(`${terug}<div class="kaart tkkaart"><h2>Taken</h2>
+    <form id="ftn" class="tknieuw"><div class="tksnel"><input name="titel" required placeholder="Nieuwe taak" aria-label="Nieuwe taak"><button>Toevoegen</button></div>
+      <details><summary>Gebouw, datum, voor wie en toelichting</summary>
+      <div class="rij">${veld('VME', kies('vme', werkOpties(vmes.map((x) => [x.id, x.naam]), null, 'geen')))}${veld('Tegen', inp('verval', 'type="date"'))}${veld('Voor', kies('wie', werkOpties(leden.map((l) => [l.user_id, l.email]), S.sessie.user.id, 'niemand')))}</div>
+      <label>Toelichting</label><input name="omschrijving"></details></form>
+    <div class="tkfilters" role="group" aria-label="Toon">${FILTERS.map(([k, n, f]) => `<button type="button" class="tkf${k === gekozen[0] ? ' aan' : ''}" data-tkf="${k}" aria-pressed="${k === gekozen[0]}">${n} <span>${open.filter(f).length}</span></button>`).join('')}</div>
+    ${lijst.length ? taakLijst(lijst, leden, (t) => ({ vme: naam[t.vme_id], dossier: dos[t.dossier_id] }), true) : `<p class="leeg">${gekozen[0] === 'alle' ? 'Geen open taken.' : 'Geen taken in deze selectie.'}</p>`}
+    ${nKlaar ? `<p class="tkalle"><label style="display:inline"><input type="checkbox" id="talle" style="width:auto"${S.takenAlle ? ' checked' : ''}> Ook de ${nKlaar} afgewerkte taak/taken tonen</label></p>` : ''}</div>`);
+  document.querySelectorAll('[data-tkf]').forEach((b) => { b.onclick = () => { S.takenFilter = b.dataset.tkf; UIT.routes.taken(); }; });
   const alle = document.getElementById('talle'); if (alle) alle.onchange = () => { S.takenAlle = alle.checked; UIT.routes.taken(); };
   bindTaken(document, () => UIT.routes.taken());
   bijVerzenden('ftn', async (f) => {

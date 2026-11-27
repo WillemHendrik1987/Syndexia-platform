@@ -251,7 +251,9 @@ img,canvas,video{max-width:100%}
 header{padding-top:calc(10px + env(safe-area-inset-top));padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
 main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
 #synknop{bottom:calc(20px + env(safe-area-inset-bottom))}
-@supports (height:100dvh){#synpaneel{height:min(560px,calc(100dvh - 130px))}.gmvak{height:calc(100dvh - 235px)}}
+@supports (height:100dvh){#synpaneel{height:min(560px,calc(100dvh - 130px))}}
+/* Alleen op een breed scherm heeft de mailbox een vaste hoogte; op een gsm loopt de lijst gewoon door. */
+@media (min-width:901px){@supports (height:100dvh){.gmvak{height:calc(100dvh - 235px)}}}
 @media (pointer:coarse),(max-width:700px){input,select,textarea,#gmedit{font-size:16px}
   button:not(.gmster):not(.gmx),.knop,select,input:not([type=checkbox]):not([type=radio]):not([type=file]){min-height:44px}
   button.stil{padding:9px 14px}.tabs button{padding:11px 14px}summary{padding-top:8px;padding-bottom:8px}summary::before{top:1.05em}
@@ -262,6 +264,30 @@ main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env
 @media (max-width:560px){header{padding-bottom:8px;gap:8px}header h1{font-size:16px}header small{display:none}#wie small{display:none}
   .kaart{padding:14px}.cijfers{gap:12px}th,td{padding:8px}.tekenvlak{height:180px}
   #synpaneel{padding-bottom:env(safe-area-inset-bottom)}}
+/* ---- Taken als lijst: rond vinkje, titel, één regel bijzaken, toelichting op aanvraag. ---- */
+.tkl{list-style:none;margin:0;padding:0}
+.tk{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--l)}.tkl>.tk:last-child{border-bottom:0}
+.tk>input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;padding:0;border:2px solid #B9AEBF;border-radius:50%;background:#fff;cursor:pointer;position:relative;transition:background .15s,border-color .15s}
+.tk>input::before{content:"";position:absolute;inset:-11px}                    /* groter tikvlak dan het rondje zelf */
+.tk>input:hover{border-color:var(--b)}.tk>input:checked{background:var(--ok);border-color:var(--ok)}
+.tk>input:checked::after{content:"";position:absolute;left:7px;top:3px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.tkin{flex:1;min-width:0}.tkt{font-weight:500;line-height:1.35;overflow-wrap:anywhere}
+.tk.klaar .tkt{text-decoration:line-through;color:var(--g);font-weight:400}.tk.klaar .tkm,.tk.klaar .tko{opacity:.6}
+.tkm{display:flex;flex-wrap:wrap;align-items:center;gap:2px 0;margin-top:3px;font-size:13px;color:var(--g);line-height:1.5}
+.tkm>span+span::before{content:"·";margin:0 7px;color:#B9AEBF}
+.tkw.laat{color:var(--fout);font-weight:600}.tkw.nu{color:var(--warn);font-weight:600}.tkw.week{color:var(--t);font-weight:500}
+.tko{margin-top:3px;font-size:13.5px;color:var(--g);line-height:1.45;cursor:pointer;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;line-clamp:1;overflow:hidden;overflow-wrap:anywhere}
+.tko.open{-webkit-line-clamp:unset;line-clamp:unset;display:block;color:var(--t)}
+.tkkop{display:flex;align-items:center;justify-content:space-between;gap:12px}.tkkop h3{margin:0}
+.tkn,.tkg span,.tkf span{display:inline-block;min-width:22px;padding:0 7px;border-radius:99px;background:var(--bl);color:var(--bd);font:600 12.5px/22px "Instrument Sans",sans-serif;text-align:center;vertical-align:2px}
+.tkplus{padding:6px 14px;border-radius:99px;font-size:14px;white-space:nowrap}
+.tkstand{margin:4px 0 4px}.tkalle{margin:10px 0 0;padding-top:12px;border-top:1px solid var(--l);font-size:14.5px}
+.tkg{margin:18px 0 0;font-size:13px;color:var(--g);font-weight:600}.tkg.laat{color:var(--fout)}.tkg span{background:var(--bg);color:inherit;vertical-align:0}
+.tknieuw{margin:6px 0 14px}.tksnel{display:flex;gap:8px}.tksnel input{flex:1;min-width:0}.tksnel button{flex:none}
+.tknieuw details{margin-top:6px}.tknieuw summary{font-size:13.5px;color:var(--g);padding-top:6px;padding-bottom:6px}.tknieuw summary::before{top:.95em}
+.tkfilters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 4px;padding:2px 0}.tkfilters::-webkit-scrollbar{display:none}
+.tkf{flex:none;padding:9px 14px;border-radius:99px;background:var(--vlak);border:1px solid var(--l);color:var(--t);font-weight:500;font-size:14px;min-height:0}
+.tkf.aan{background:var(--t);border-color:var(--t);color:#fff}.tkf.aan span{background:rgba(255,255,255,.2);color:#fff}
 /* ---- Gsm (tot 700px): tabellen worden kaartjes, navigatie zit onderaan bij de duim. ---- */
 html{-webkit-tap-highlight-color:transparent}a,button,summary,label,select{touch-action:manipulation}
 #gsmbalk,#gsmblad,#gsmachter{display:none}
@@ -291,7 +317,7 @@ table.gbreed td:first-child,table.gbreed th:first-child{position:sticky;left:0;b
   table.gk>tbody>tr>td::before{content:attr(data-k);margin-right:7px;color:var(--g);font-size:12.5px;font-weight:400}
   table.gk>tbody>tr>td[data-k=""]::before,table.gk>tbody>tr>td.gt::before{content:none}
   table.gk>tbody>tr>td.gt{flex:1 1 100%;font-weight:600;font-size:15.5px;padding-bottom:2px}
-  table.gk>tbody>tr>td.gv~td.gt{flex:1 1 0}
+  table.gk>tbody>tr>td.gv~td.gt{flex:1 1 calc(100% - 48px)}
   table.gk>tbody>tr>td.gt .klein{display:block;font-weight:400;margin-top:1px}table.gk>tbody>tr>td.gt br{display:none}
   table.gk>tbody>tr>td.gv{flex:none;align-self:flex-start;padding-top:1px}
   table.gk>tbody>tr>td.gl{display:none}
@@ -347,28 +373,28 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.36"></script>
-<script src="meer.js?v=0.36"></script>
-<script src="peppol.js?v=0.36"></script>
-<script src="docs.js?v=0.36"></script>
-<script src="ai.js?v=0.36"></script>
-<script src="mail.js?v=0.36"></script>
-<script src="portaal.js?v=0.36"></script>
-<script src="qr.js?v=0.36"></script>
-<script src="werk.js?v=0.36"></script>
-<script src="melding.js?v=0.36"></script>
-<script src="verkoop.js?v=0.36"></script>
-<script src="assistent.js?v=0.36"></script>
-<script src="migratie.js?v=0.36"></script>
-<script src="mailbox.js?v=0.36"></script>
-<script src="gmail.js?v=0.36"></script>
-<script src="attesten.js?v=0.36"></script>
-<script src="betaal.js?v=0.36"></script>
-<script src="teken.js?v=0.36"></script>
-<script src="sleutels.js?v=0.36"></script>
-<script src="mapkoppeling.js?v=0.36"></script>
-<script src="koppelingen.js?v=0.36"></script>
-<script src="gsm.js?v=0.36"></script>
-<script src="app.js?v=0.36"></script>
+<script src="beheer.js?v=0.37"></script>
+<script src="meer.js?v=0.37"></script>
+<script src="peppol.js?v=0.37"></script>
+<script src="docs.js?v=0.37"></script>
+<script src="ai.js?v=0.37"></script>
+<script src="mail.js?v=0.37"></script>
+<script src="portaal.js?v=0.37"></script>
+<script src="qr.js?v=0.37"></script>
+<script src="werk.js?v=0.37"></script>
+<script src="melding.js?v=0.37"></script>
+<script src="verkoop.js?v=0.37"></script>
+<script src="assistent.js?v=0.37"></script>
+<script src="migratie.js?v=0.37"></script>
+<script src="mailbox.js?v=0.37"></script>
+<script src="gmail.js?v=0.37"></script>
+<script src="attesten.js?v=0.37"></script>
+<script src="betaal.js?v=0.37"></script>
+<script src="teken.js?v=0.37"></script>
+<script src="sleutels.js?v=0.37"></script>
+<script src="mapkoppeling.js?v=0.37"></script>
+<script src="koppelingen.js?v=0.37"></script>
+<script src="gsm.js?v=0.37"></script>
+<script src="app.js?v=0.37"></script>
 </body>
 </html>

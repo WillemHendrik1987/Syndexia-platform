@@ -42,7 +42,7 @@
     const tabs = document.querySelector('#app .tabs'), aan = tabs?.querySelector('.aan');
     if (aan && tabs.scrollWidth > tabs.clientWidth && !tabs.dataset.gezet) { tabs.dataset.gezet = '1'; tabs.scrollLeft = aan.offsetLeft - (tabs.clientWidth - aan.offsetWidth) / 2; }
     const teller = document.querySelector('#mbteller .pil'), bol = document.getElementById('gsmmail');
-    if (teller && bol) { bol.textContent = teller.textContent.trim(); bol.hidden = !bol.textContent; }
+    if (teller && bol) { bol.textContent = (teller.textContent.match(/\d+\+?/) ?? [''])[0]; bol.hidden = !bol.textContent; }
   }
   let gepland = false;
   const plan = () => { if (gepland) return; gepland = true; requestAnimationFrame(() => { gepland = false; labelTabellen(); }); };
