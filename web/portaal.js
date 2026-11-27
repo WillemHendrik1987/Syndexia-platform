@@ -23,10 +23,13 @@ const PT_VRAGEN = ['Hoeveel moet ik nog betalen?', 'Wanneer is de volgende verga
 const ptKopie = (waarde, wat) => `<button type="button" class="stil ptkopie" data-kopie="${esc(waarde)}" aria-label="${esc(wat)} kopiëren">Kopiëren</button>`;
 const ptStatus = (m) => (m.status === 'afgesloten' ? ['afgehandeld', 'ok'] : m.status === 'open' ? ['ontvangen', 'warn'] : [m.status, 'warn']);
 
-function schermPortaal(p, metTerug = false) {
-  const st = (S.pt ??= { deel: 'overzicht', gesprek: [], zoek: '', extra: null, vme: null });
+// kijk = { id, naam, extra, kanAanmelden }: de syndicus bekijkt het portaal van een eigenaar. Dan is alles alleen-lezen.
+function schermPortaal(p, metTerug = false, kijk = null) {
+  if ((S.pt?.wie ?? null) !== (kijk?.id ?? null)) S.pt = null;   // een andere eigenaar: begin opnieuw bij het overzicht
+  const st = (S.pt ??= { deel: 'overzicht', gesprek: [], zoek: '', extra: kijk?.extra ?? null, vme: null, wie: kijk?.id ?? null });
+  const kop = kijk ? `<p><a href="#/portaal/als">← andere eigenaar kiezen</a></p><div class="melding ptkijk">U bekijkt het portaal zoals <b>${esc(kijk.naam)}</b> het ziet. Melden, een wijziging doorgeven en de assistent zijn hier uitgeschakeld.${kijk.kanAanmelden ? '' : ' Bij dit contact staat geen e-mailadres: deze eigenaar kan zich nog niet aanmelden.'}</div>` : metTerug ? terug : '';
   const vmes = [...new Map(p.kavels.map((k) => [k.vme_id, k])).values()];
-  if (!vmes.length) return toon(`${metTerug ? terug : ''}<h2>Mijn eigendom</h2><p class="klein">U bent aangemeld als ${esc(p.email)}.</p><div class="kaart"><p class="leeg">Dit e-mailadres is aan geen enkele kavel gekoppeld. Vraag uw syndicus om dit adres bij uw gegevens te zetten.</p></div>`);
+  if (!vmes.length) return toon(kijk ? `${kop}<div class="kaart"><p class="leeg">${esc(kijk.naam)} is van geen enkele kavel eigenaar (geweest): het portaal is voor dit contact leeg.</p></div>` : `${kop}<h2>Mijn eigendom</h2><p class="klein">U bent aangemeld als ${esc(p.email)}.</p><div class="kaart"><p class="leeg">Dit e-mailadres is aan geen enkele kavel gekoppeld. Vraag uw syndicus om dit adres bij uw gegevens te zetten.</p></div>`);
   if (!vmes.some((v) => v.vme_id === st.vme)) st.vme = vmes[0].vme_id;
   if (!PT_DELEN.some(([d]) => d === st.deel)) st.deel = 'overzicht';
   const v = vmes.find((x) => x.vme_id === st.vme), kavels = p.kavels.filter((k) => k.vme_id === v.vme_id), nu = kavels.filter((k) => k.huidig), ex = st.extra ?? { mij: [], meldingen: [] };
@@ -71,7 +74,7 @@ function schermPortaal(p, metTerug = false) {
         <div id="ptwfout"></div><p style="margin-bottom:0"><button>Doorgeven aan de syndicus</button></p></form><p class="klein" style="margin-bottom:0">De syndicus past het aan. Verkoopt u uw eigendom, dan meldt uw notaris dat aan de syndicus.</p></div>`,
   };
 
-  toon(`${metTerug ? terug : ''}<div class="pt"><div class="pthero"><p class="ptwie">${esc(v.vme)}${vmes.length > 1 ? ` <select id="ptvme" aria-label="Kies het gebouw">${vmes.map((x) => `<option value="${x.vme_id}"${x.vme_id === v.vme_id ? ' selected' : ''}>${esc(x.vme)}</option>`).join('')}</select>` : ''}</p>
+  toon(`${kop}<div class="pt"><div class="pthero"><p class="ptwie">${esc(v.vme)}${vmes.length > 1 ? ` <select id="ptvme" aria-label="Kies het gebouw">${vmes.map((x) => `<option value="${x.vme_id}"${x.vme_id === v.vme_id ? ' selected' : ''}>${esc(x.vme)}</option>`).join('')}</select>` : ''}</p>
       <h2>Dag${voornaam ? ` ${esc(voornaam)}` : ''}, waarmee kan ik u helpen?</h2>
       <form id="fptv"><input name="vraag" maxlength="1500" required autocomplete="off" placeholder="Stel uw vraag, bv. hoeveel moet ik nog betalen?" aria-label="Uw vraag"><button>Vraag</button></form>
       <div id="ptgesprek">${st.gesprek.map((b) => (b.role === 'user' ? `<p class="ptvraag">${esc(b.content)}</p>` : `<div class="ptantw"><p>${esc(b.content)}</p>${b.secties?.length || b.naar_syndicus ? `<p class="ptnaar">${(b.secties ?? []).map((d) => naar(d, `Naar ${PT_DELEN.find(([x]) => x === d)?.[1] ?? d}`, 'knop licht')).join(' ')}${b.naar_syndicus && !(b.secties ?? []).includes('melden') ? ` ${naar('melden', 'Vraag het aan de syndicus', 'knop licht')}` : ''}</p>` : ''}</div>`)).join('')}</div>
@@ -80,14 +83,16 @@ function schermPortaal(p, metTerug = false) {
     <div id="ptdeel">${delen[st.deel]()}</div>
     <p class="klein ptvoet">U bent aangemeld als ${esc(p.email)} en ziet alleen de gegevens van uw eigen kavel(s). De assistent antwoordt met die gegevens en kan zich vergissen: bij twijfel beslist uw syndicus.</p></div>`);
 
-  const opnieuw = () => schermPortaal(p, metTerug);
+  const opnieuw = () => schermPortaal(p, metTerug, kijk);
+  // alleen-lezen: de formulieren en het vraagvak staan er, zodat je ziet wat de eigenaar ziet, maar doen niets
+  if (kijk) document.querySelectorAll('#fptv input, #fptv button, .ptchip, #fptm input, #fptm textarea, #fptm button, #fptw textarea, #fptw button').forEach((e) => { e.disabled = true; });
   // De extra gegevens (wie ben ik, mijn meldingen) komen na de eerste tekening: het scherm staat er meteen.
   if (!st.extra) { st.extra = { mij: [], meldingen: [], laadt: true }; q(sb.rpc('portaal_extra')).then((e) => { st.extra = { mij: e?.mij ?? [], meldingen: e?.meldingen ?? [] }; if (!document.querySelector('.pt')) return;
     // wat de eigenaar intussen al typte in het vraagvak blijft staan
     const getypt = document.querySelector('#fptv [name=vraag]')?.value ?? '', had = document.activeElement?.name === 'vraag'; opnieuw(); const vak = document.querySelector('#fptv [name=vraag]'); if (vak && getypt) { vak.value = getypt; if (had) vak.focus(); } }).catch(() => { st.extra = { mij: [], meldingen: [] }; }); }
   document.querySelectorAll('[data-ptdeel]').forEach((b) => { b.onclick = () => { st.deel = b.dataset.ptdeel; opnieuw(); document.querySelector('.ptnav')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     // bij Melden de stand van de meldingen verversen: de syndicus kan er intussen een afgehandeld hebben
-    if (st.deel === 'melden') q(sb.rpc('portaal_extra')).then((e) => { const oud = JSON.stringify(st.extra.meldingen); st.extra = { mij: e?.mij ?? [], meldingen: e?.meldingen ?? [] };
+    if (st.deel === 'melden' && !kijk) q(sb.rpc('portaal_extra')).then((e) => { const oud = JSON.stringify(st.extra.meldingen); st.extra = { mij: e?.mij ?? [], meldingen: e?.meldingen ?? [] };
       if (JSON.stringify(st.extra.meldingen) !== oud && st.deel === 'melden' && document.querySelector('.pt') && !document.querySelector('#fptm [name=titel]')?.value && !document.querySelector('#fptm [name=tekst]')?.value) opnieuw(); }).catch(() => {}); }; });
   const kies1 = document.getElementById('ptvme'); if (kies1) kies1.onchange = () => { st.vme = kies1.value; opnieuw(); };
   document.querySelectorAll('.ptkopie').forEach((b) => { b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.kopie); b.textContent = 'Gekopieerd'; setTimeout(() => { b.textContent = 'Kopiëren'; }, 1800); } catch (e) { b.textContent = 'Selecteer en kopieer zelf'; } }; });
@@ -106,21 +111,45 @@ function schermPortaal(p, metTerug = false) {
       st.gesprek.push({ role: 'user', content: tekst }, { role: 'assistant', content: String(data.antwoord ?? ''), secties: (Array.isArray(data.secties) ? data.secties : []).filter((d) => PT_DELEN.some(([x]) => x === d)), naar_syndicus: !!data.naar_syndicus }); opnieuw();
     } catch (e) { knop.disabled = false; knop.textContent = 'Vraag'; uit.innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; }
   };
-  fv.onsubmit = (ev) => { ev.preventDefault(); const t = fv.vraag.value.trim(); if (t) stel(t); };
+  fv.onsubmit = (ev) => { ev.preventDefault(); const t = fv.vraag.value.trim(); if (t && !kijk) stel(t); };
   document.querySelectorAll('.ptchip').forEach((b) => { b.onclick = () => stel(b.textContent); });
   const wis = document.getElementById('ptwis'); if (wis) wis.onclick = () => { st.gesprek = []; opnieuw(); };
   // melden en een wijziging doorgeven
-  const fm = document.getElementById('fptm'); if (fm) fm.onsubmit = async (ev) => { ev.preventDefault(); const knop = fm.querySelector('button'); knop.disabled = true;
+  const fm = document.getElementById('fptm'); if (fm) fm.onsubmit = async (ev) => { ev.preventDefault(); if (kijk) return; const knop = fm.querySelector('button'); knop.disabled = true;
     try { await q(sb.rpc('portaal_melding', { p_vme: v.vme_id, p_titel: fm.titel.value, p_tekst: fm.tekst.value, p_plaats: fm.plaats.value, p_dringend: fm.dringend.checked }));
       const e = await q(sb.rpc('portaal_extra')); st.extra = { mij: e?.mij ?? [], meldingen: e?.meldingen ?? [] };
       S.bericht = { soort: 'ok', tekst: 'Uw melding is aangekomen bij de syndicus. U volgt ze hieronder bij "Mijn meldingen".' }; opnieuw();
     } catch (e) { knop.disabled = false; document.getElementById('ptmfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; } };
-  const fw = document.getElementById('fptw'); if (fw) fw.onsubmit = async (ev) => { ev.preventDefault(); const knop = fw.querySelector('button'); knop.disabled = true;
+  const fw = document.getElementById('fptw'); if (fw) fw.onsubmit = async (ev) => { ev.preventDefault(); if (kijk) return; const knop = fw.querySelector('button'); knop.disabled = true;
     try { await q(sb.rpc('portaal_wijziging', { p_tekst: fw.tekst.value })); S.bericht = { soort: 'ok', tekst: 'Doorgegeven. De syndicus past uw gegevens aan.' }; opnieuw(); }
     catch (e) { knop.disabled = false; document.getElementById('ptwfout').innerHTML = `<div class="melding fout">${esc(e.message)}</div>`; } };
 }
-// Wie ook lid is van een kantoor, bekijkt zijn eigen eigendom via #/portaal.
-UIT.routes.portaal = async () => schermPortaal(await q(sb.rpc('portaal')), true);
+// Wie lid is van een kantoor:
+//   #/portaal                 zijn eigen eigendom, als zijn adres ook bij een eigenaar staat
+//   #/portaal/als             kiezen welke eigenaar je wil bekijken
+//   #/portaal/als/<contact>   het portaal zoals die eigenaar het ziet (alleen lezen)
+UIT.vandaag.push('<p><a class="knop licht" href="#/portaal/als">Portaal als eigenaar</a></p>');
+UIT.routes.portaal = async () => {
+  const [, , als, contact] = location.hash.split('/');
+  if (als !== 'als') return schermPortaal(await q(sb.rpc('portaal')), true);
+  if (contact) {
+    let r; try { r = await q(sb.rpc('portaal_als', { p_contact: contact })); } catch (e) { fout(e); location.hash = '#/portaal/als'; return; }
+    const mij = r.extra?.mij?.[0] ?? {};
+    return schermPortaal(r.portaal, true, { id: contact, naam: mij.naam || 'deze eigenaar', extra: { mij: r.extra?.mij ?? [], meldingen: r.extra?.meldingen ?? [] }, kanAanmelden: !!r.kan_aanmelden });
+  }
+  const st = (S.ptAls ??= { vme: '' });
+  let vmes, eig, contacten;
+  try { [vmes, eig, contacten] = await Promise.all([q(sb.from('vme').select('id, naam').is('gedeactiveerd_op', null).order('naam')), q(sb.from('v_kavel_eigenaar_vandaag').select('vme_id, kavelnummer, contact_id, naam')), q(sb.from('contact').select('id, emails'))]); }
+  catch (e) { fout(e); return toon(`${terug}<p class="leeg">De eigenaars konden niet geladen worden.</p>`); }
+  if (!vmes.some((v) => v.id === st.vme)) st.vme = vmes[0]?.id ?? '';
+  const mail = new Map(contacten.map((c) => [c.id, c.emails ?? []])), ids = [...new Set(eig.filter((e) => e.vme_id === st.vme).map((e) => e.contact_id))];
+  const lijst = ids.map((id) => ({ id, naam: eig.find((e) => e.contact_id === id).naam, kavels: eig.filter((e) => e.vme_id === st.vme && e.contact_id === id).map((e) => e.kavelnummer).sort((a, b) => a.localeCompare(b, 'nl', { numeric: true })), emails: mail.get(id) ?? [] })).sort((a, b) => a.naam.localeCompare(b.naam));
+  toon(`${terug}<h2>Portaal bekijken als eigenaar</h2><p class="klein">Kies een eigenaar om te zien wat die in het eigenaarsportaal ziet. U bekijkt alleen: er wordt niets gewijzigd en de eigenaar merkt er niets van.</p>
+    <div class="kaart">${vmes.length > 1 ? `<div class="rij">${veld('Gebouw', `<select id="ptalsvme">${vmes.map((v) => `<option value="${v.id}"${v.id === st.vme ? ' selected' : ''}>${esc(v.naam)}</option>`).join('')}</select>`, '1 1 280px')}</div>` : `<h3 style="margin-top:0">${esc(vmes[0]?.naam ?? '')}</h3>`}
+      ${lijst.length ? `<ul class="ptlijst">${lijst.map((e) => `<li><span><b>${esc(e.naam)}</b><span class="klein">${esc(e.kavels.join(', '))} · ${e.emails.length ? esc(e.emails.join(', ')) : 'geen e-mailadres: kan zich nog niet aanmelden'}</span></span><a class="knop licht" href="#/portaal/als/${e.id}">Bekijken</a></li>`).join('')}</ul>` : '<p class="leeg">Dit gebouw heeft nog geen eigenaars.</p>'}</div>
+    <p class="klein">Een eigenaar meldt zich aan op ${esc(location.origin)} met het e-mailadres dat bij zijn contact staat. Uitnodigen doe je in het tabblad Mailings van het gebouw, met het sjabloon "Uitnodiging eigenaarsportaal".</p>`);
+  const kiesVme = document.getElementById('ptalsvme'); if (kiesVme) kiesVme.onchange = () => { st.vme = kiesVme.value; UIT.routes.portaal(); };
+};
 
 // ---- contacten: tabblad per VME (en #/contacten voor het hele kantoor) ----------------
 const portaalNaam = (c) => c.bedrijfsnaam || [c.voornaam, c.achternaam].filter(Boolean).join(' ');
