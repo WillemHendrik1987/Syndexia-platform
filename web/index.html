@@ -289,6 +289,12 @@ main{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env
 .tkf{flex:none;padding:9px 14px;border-radius:99px;background:var(--vlak);border:1px solid var(--l);color:var(--t);font-weight:500;font-size:14px;min-height:0}
 .tkf.aan{background:var(--t);border-color:var(--t);color:#fff}.tkf.aan span{background:rgba(255,255,255,.2);color:#fff}
 button.tmweg{background:var(--fout);color:#fff}button.tmweg:hover{filter:brightness(.92)}
+/* ---- Tweestapsverificatie en logboek ---- */
+.kaart.twee{max-width:460px;margin:24px auto}.code2{font-size:28px;letter-spacing:.35em;text-align:center;font-variant-numeric:tabular-nums;max-width:240px;padding:10px 6px}
+.twstappen{padding-left:20px}.twstappen li{margin:0 0 14px}.twqr{display:block;margin:10px 0;background:#fff;border:1px solid var(--l);border-radius:12px;padding:8px}.twsleutel{overflow-wrap:anywhere;font-size:15px}
+.logl{list-style:none;margin:0;padding:0}.logdag{margin:18px 0 4px;font-size:13px;font-weight:600;color:var(--g)}.logl>.logdag:first-child{margin-top:6px}
+.logr{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--l);line-height:1.45}.loguur{flex:none;width:44px;color:var(--g);font-size:13px;font-variant-numeric:tabular-nums;padding-top:1px}
+.logr>div{min-width:0;overflow-wrap:anywhere}.logwie{font-weight:600}.logwijz{display:block;font-size:13px;color:var(--g);margin-top:2px}
 /* ---- Zoek of vraag: de knop in de kop en het blad met resultaten. ---- */
 header{gap:10px}#zoekknop:not([hidden]){margin-left:auto;display:flex;align-items:center;gap:8px;min-height:38px;padding:6px 12px;border-radius:99px;background:rgba(255,255,255,.12);color:#fff;font-weight:500;font-size:14px}
 #zoekknop:hover{background:rgba(255,255,255,.2)}#zoekknop svg{width:18px;height:18px;flex:none}#zoekknop kbd{font:500 11px "Instrument Sans",sans-serif;opacity:.6;border:1px solid rgba(255,255,255,.35);border-radius:5px;padding:1px 5px}
@@ -391,30 +397,31 @@ window.UIT = { tabs: [], fn: {}, bind: {}, routes: {}, vandaag: [] };
 import { leesCoda, alsBedrag, geldigeOgm } from './coda.mjs';
 window.leesCoda = leesCoda; window.codaBedrag = alsBedrag; window.geldigeOgm = geldigeOgm;
 </script>
-<script src="beheer.js?v=0.39"></script>
-<script src="meer.js?v=0.39"></script>
-<script src="peppol.js?v=0.39"></script>
-<script src="docs.js?v=0.39"></script>
-<script src="ai.js?v=0.39"></script>
-<script src="mail.js?v=0.39"></script>
-<script src="portaal.js?v=0.39"></script>
-<script src="qr.js?v=0.39"></script>
-<script src="werk.js?v=0.39"></script>
-<script src="melding.js?v=0.39"></script>
-<script src="verkoop.js?v=0.39"></script>
-<script src="assistent.js?v=0.39"></script>
-<script src="migratie.js?v=0.39"></script>
-<script src="mailbox.js?v=0.39"></script>
-<script src="gmail.js?v=0.39"></script>
-<script src="attesten.js?v=0.39"></script>
-<script src="betaal.js?v=0.39"></script>
-<script src="teken.js?v=0.39"></script>
-<script src="sleutels.js?v=0.39"></script>
-<script src="mapkoppeling.js?v=0.39"></script>
-<script src="koppelingen.js?v=0.39"></script>
-<script src="gsm.js?v=0.39"></script>
-<script src="team.js?v=0.39"></script>
-<script src="zoek.js?v=0.39"></script>
-<script src="app.js?v=0.39"></script>
+<script src="beheer.js?v=0.40"></script>
+<script src="meer.js?v=0.40"></script>
+<script src="peppol.js?v=0.40"></script>
+<script src="docs.js?v=0.40"></script>
+<script src="ai.js?v=0.40"></script>
+<script src="mail.js?v=0.40"></script>
+<script src="portaal.js?v=0.40"></script>
+<script src="qr.js?v=0.40"></script>
+<script src="werk.js?v=0.40"></script>
+<script src="melding.js?v=0.40"></script>
+<script src="verkoop.js?v=0.40"></script>
+<script src="assistent.js?v=0.40"></script>
+<script src="migratie.js?v=0.40"></script>
+<script src="mailbox.js?v=0.40"></script>
+<script src="gmail.js?v=0.40"></script>
+<script src="attesten.js?v=0.40"></script>
+<script src="betaal.js?v=0.40"></script>
+<script src="teken.js?v=0.40"></script>
+<script src="sleutels.js?v=0.40"></script>
+<script src="mapkoppeling.js?v=0.40"></script>
+<script src="koppelingen.js?v=0.40"></script>
+<script src="gsm.js?v=0.40"></script>
+<script src="team.js?v=0.40"></script>
+<script src="tweestap.js?v=0.40"></script>
+<script src="zoek.js?v=0.40"></script>
+<script src="app.js?v=0.40"></script>
 </body>
 </html>

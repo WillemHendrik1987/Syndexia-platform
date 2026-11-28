@@ -105,6 +105,13 @@ async function start() {
   document.getElementById('wie').innerHTML = `<small>${esc(session.user.email)}</small> <button class="stil" style="color:#fff" id="uit">Afmelden</button>`;
   document.getElementById('uit').onclick = () => sb.auth.signOut();
   if (S.herstel) return schermNieuwWachtwoord();
+  // Tweestapsverificatie: de databank zegt of er na het wachtwoord nog een code nodig is, of dat het
+  // kantoor ze verplicht en ze nog ingesteld moet worden. Tot dan geeft de databank toch geen gegevens.
+  if (!S.herstel && typeof schermTweestapCode === 'function') {
+    const { data: t } = await sb.rpc('tweestap');
+    if (t?.factor && t.niveau !== 'aal2') return schermTweestapCode(t.factor);
+    if (t?.verplicht && !t.factor) { await sb.rpc('aanvaard_uitnodigingen'); return schermTweestapInstellen(true); }
+  }
   try {
     await sb.rpc('aanvaard_uitnodigingen');
     const kantoren = await q(sb.from('kantoor').select('id, naam').order('naam'));
